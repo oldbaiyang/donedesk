@@ -30,6 +30,8 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
     reward_pts: 0
   });
 
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   // 当作业变更时同步编辑数据
   useEffect(() => {
     if (assignment) {
@@ -39,6 +41,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
         reward_pts: assignment.reward_pts
       });
       setIsEditing(false); // 每次切换作业时默认关闭编辑模式
+      setSelectedImage(null);
     }
   }, [assignment]);
 
@@ -46,6 +49,16 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
 
   const dueDate = assignment.due_date ? new Date(assignment.due_date) : null
   const isCompleted = assignment.status === "completed"
+
+  // 辅助函数：判断是否为图片
+  const isImageFile = (fileName: string) => {
+    const images = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return ext ? images.includes(ext) : false;
+  };
+
+  const images = assignment.attachments?.filter(a => isImageFile(a.file_name)) || [];
+  const otherFiles = assignment.attachments?.filter(a => !isImageFile(a.file_name)) || [];
 
   const handleToggleStatus = async () => {
     setLoading(true);
@@ -198,30 +211,60 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             )}
           </div>
 
-          {/* 附件资料下载区 */}
+          {/* 附件资料区：区分图片与常规文档 */}
           {!isEditing && !!assignment.attachments?.length && (
-            <div className="space-y-3 pb-2">
-              <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
-                <Paperclip className="w-4 h-4 text-primary" /> 关联学习资料 ({assignment.attachments.length})
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {assignment.attachments.map(att => (
-                  <a 
-                    key={att.id} 
-                    href={att.file_url} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="flex items-center gap-3 p-4 rounded-2xl bg-card border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all group overflow-hidden"
-                  >
-                    <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
-                      <Paperclip className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-medium truncate flex-1 text-foreground/70 group-hover:text-primary transition-colors">
-                      {att.file_name}
-                    </span>
-                  </a>
-                ))}
-              </div>
+            <div className="space-y-6 pb-2">
+              {/* 图片网格预览 */}
+              {images.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-2">
+                    参考图片资料 ({images.length})
+                  </h4>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {images.map(image => (
+                      <button
+                        key={image.id}
+                        onClick={() => setSelectedImage(image.file_url)}
+                        className="aspect-square rounded-2xl overflow-hidden border border-border/50 bg-muted/20 hover:border-primary/40 hover:shadow-lg transition-all active:scale-95 group relative"
+                      >
+                        <img 
+                          src={image.file_url} 
+                          alt={image.file_name}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 其他文件下载列表 */}
+              {otherFiles.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-2">
+                    文档及其他附件 ({otherFiles.length})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {otherFiles.map(att => (
+                      <a 
+                        key={att.id} 
+                        href={att.file_url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center gap-3 p-4 rounded-2xl bg-card border hover:border-primary/40 hover:shadow-md transition-all group overflow-hidden"
+                      >
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+                          <Paperclip className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium truncate flex-1 text-foreground/70 group-hover:text-primary transition-colors">
+                          {att.file_name}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -231,6 +274,33 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             </div>
           )}
         </div>
+
+        {/* 图片全屏预览蒙层 (灯箱) */}
+        {selectedImage && (
+          <div 
+            className="fixed inset-0 z-[200] bg-background/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200 cursor-zoom-out"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-full max-h-full">
+              <img 
+                src={selectedImage} 
+                alt="Full Preview" 
+                className="rounded-3xl shadow-2xl ring-1 ring-white/20 max-h-[85vh] object-contain animate-in zoom-in-95 duration-300"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -top-4 -right-4 rounded-full bg-background/80 backdrop-blur-md shadow-xl border-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImage(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* 底部操作固定栏 */}
         <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4 shrink-0">
