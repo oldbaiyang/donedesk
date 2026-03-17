@@ -139,7 +139,12 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       .from('assignments')
       .update(updates)
       .eq('id', id);
-    if (!error) await fetchAssignments();
+    
+    if (error) {
+      console.error("Error updating assignment:", error);
+    } else {
+      await fetchAssignments();
+    }
   };
 
   const updateAssignmentStatus = async (id: string, status: Assignment['status']) => {

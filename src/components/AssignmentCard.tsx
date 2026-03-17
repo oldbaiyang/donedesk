@@ -53,9 +53,46 @@ export function AssignmentCard({ assignment }: Props) {
                 <h3 className={cn("font-semibold leading-none", isCompleted && "line-through text-muted-foreground")}>
                   {assignment.title}
                 </h3>
-                {assignment.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{assignment.description}</p>
-                )}
+                {assignment.description && (() => {
+                  // 1. 提取图片
+                  const imgRegex = /!\[.*?\]\((.*?)\)/g;
+                  const images: string[] = [];
+                  let match;
+                  const cleanDesc = assignment.description.replace(/\\(!|\[|\]|\(|\))/g, '$1');
+                  
+                  while ((match = imgRegex.exec(cleanDesc)) !== null) {
+                    images.push(match[1]);
+                  }
+
+                  // 2. 提取并清洗纯文本
+                  const textOnly = cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '').trim();
+
+                  if (images.length > 0 && textOnly === "") {
+                    return (
+                      <div className="flex gap-1.5 mt-2 overflow-hidden h-12">
+                        {images.slice(0, 4).map((src, i) => (
+                          <img 
+                            key={i} 
+                            src={src} 
+                            className="h-full aspect-square object-cover rounded-md border border-border/40 shadow-sm" 
+                            alt=""
+                          />
+                        ))}
+                        {images.length > 4 && (
+                          <div className="h-full aspect-square rounded-md bg-muted/30 border border-dashed flex items-center justify-center text-[10px] text-muted-foreground">
+                            +{images.length - 4}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {textOnly || cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '[图片]')}
+                    </p>
+                  );
+                })()}
                 {/* 附件展示模块 */}
                 {!!assignment.attachments?.length && (
                   <div className="flex flex-wrap gap-2 mt-2.5">

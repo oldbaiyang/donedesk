@@ -20,6 +20,7 @@ export type Assignment = {
   title: string;
   description: string | null;
   status: 'pending' | 'in_progress' | 'completed';
+  start_date: string | null;
   due_date: string | null;
   reward_pts: number;
   subject?: Subject;

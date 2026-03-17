@@ -1,14 +1,29 @@
 import { Assignment, useAssignments } from "@/hooks/useAssignments"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
-import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X, Eye } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Calendar as CalendarUI } from "./ui/calendar"
+import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import dynamic from "next/dynamic"
+import { ImageZoom } from "./ImageZoom"
+
+const MarkdownEditor = dynamic(
+  () => import("./MarkdownEditor").then((mod) => mod.MarkdownEditor),
+  { 
+    ssr: false,
+    loading: () => <div className="min-h-[250px] rounded-3xl bg-muted/20 border border-border/40 animate-pulse flex items-center justify-center text-muted-foreground/40 text-sm">加载融合编辑器...</div>
+  }
+)
 
 type Props = {
   assignment: Assignment | null
@@ -16,19 +31,30 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
+const cleanMarkdown = (content: string) => {
+  if (!content) return "";
+  // 修复 tiptap-markdown 可能产生的过度转义 \!\[\] -> ![]
+  return content.replace(/\\(!|\[|\])/g, '$1').replace(/\\[(]/g, '(').replace(/\\[)]/g, ')');
+};
+
 export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props) {
-  const { updateAssignmentStatus, updateAssignment } = useAssignments();
+  const { updateAssignmentStatus, updateAssignment, subjects } = useAssignments();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [editData, setEditData] = useState<{
     title: string;
     description: string;
     reward_pts: number;
+    start_date: string | null;
+    due_date: string | null;
+    subject_id: string;
   }>({
     title: "",
     description: "",
-    reward_pts: 0
+    reward_pts: 0,
+    start_date: null,
+    due_date: null,
+    subject_id: ""
   });
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -39,7 +65,10 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
       setEditData({
         title: assignment.title,
         description: assignment.description || "",
-        reward_pts: assignment.reward_pts
+        reward_pts: assignment.reward_pts,
+        start_date: assignment.start_date,
+        due_date: assignment.due_date,
+        subject_id: assignment.subject_id
       });
       setIsEditing(false); // 每次切换作业时默认关闭编辑模式
       setSelectedImage(null);
@@ -73,7 +102,10 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
     await updateAssignment(assignment.id, {
       title: editData.title,
       description: editData.description,
-      reward_pts: editData.reward_pts
+      reward_pts: editData.reward_pts,
+      start_date: editData.start_date,
+      due_date: editData.due_date,
+      subject_id: editData.subject_id
     });
     setIsEditing(false);
     setLoading(false);
@@ -100,13 +132,13 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-3 flex-1">
                 {isEditing ? (
-                  <div className="space-y-2 pt-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">作业标题</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 pl-1">任务名称</label>
                     <Input 
                       value={editData.title}
                       onChange={(e) => setEditData({...editData, title: e.target.value})}
-                      className="text-xl font-bold bg-background/50 border-primary/20 focus-visible:ring-primary/30"
-                      placeholder="输入作业标题..."
+                      className="text-xl font-extrabold bg-background/50 border-primary/20 focus-visible:ring-primary/30 h-12"
+                      placeholder="任务名称..."
                     />
                   </div>
                 ) : (
@@ -116,22 +148,26 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                 )}
                 
                 <div className="flex items-center gap-3">
-                  {assignment.subject && (
-                    <Badge 
-                      variant="outline" 
-                      className="px-3 py-1 text-xs font-bold rounded-full border-2 transition-transform hover:scale-105"
-                      style={{ 
-                        borderColor: assignment.subject.color_code, 
-                        color: assignment.subject.color_code,
-                        backgroundColor: `${assignment.subject.color_code}10`
-                      }}
-                    >
-                      {assignment.subject.name}
-                    </Badge>
+                  {!isEditing && (
+                    <>
+                      {assignment.subject && (
+                        <Badge 
+                          variant="outline" 
+                          className="px-3 py-1 text-xs font-bold rounded-full border-2 transition-transform hover:scale-105"
+                          style={{ 
+                            borderColor: assignment.subject.color_code, 
+                            color: assignment.subject.color_code,
+                            backgroundColor: `${assignment.subject.color_code}10`
+                          }}
+                        >
+                          {assignment.subject.name}
+                        </Badge>
+                      )}
+                      <Badge variant={isCompleted ? "secondary" : "default"} className={cn("px-3 py-1 text-xs font-bold rounded-full", isCompleted && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20")}>
+                        {isCompleted ? "已完成" : "进行中"}
+                      </Badge>
+                    </>
                   )}
-                  <Badge variant={isCompleted ? "secondary" : "default"} className={cn("px-3 py-1 text-xs font-bold rounded-full", isCompleted && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20")}>
-                    {isCompleted ? "已完成" : "进行中"}
-                  </Badge>
                 </div>
               </div>
               
@@ -152,75 +188,133 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             </div>
           </DialogHeader>
 
-          {/* 核心信息网格 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-3xl bg-primary/5 border border-primary/10">
-             <div className="flex items-center gap-4 group">
-               <div className="p-3 rounded-2xl bg-background shadow-sm border group-hover:bg-primary/5 transition-colors">
-                 <Calendar className="h-6 w-6 text-primary" />
-               </div>
-               <div>
-                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">截止时间 / Deadline</p>
-                 <p className="text-sm font-semibold text-foreground/80">
-                   {dueDate ? format(dueDate, 'yyyy年MM月dd日') : "未设置"}
-                 </p>
-               </div>
-             </div>
+          {/* 核心信息网格：支持编辑态并排 */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 学科与积分 */}
+              <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                <div className="space-y-1.5 overflow-hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 truncate">关联学科</p>
+                  {isEditing ? (
+                    <Select value={editData.subject_id} onValueChange={(val) => setEditData({...editData, subject_id: val as string})}>
+                       <SelectTrigger className="w-full h-9 px-3 text-xs bg-background/50 border-primary/10 transition-all">
+                         <SelectValue placeholder="选择学科">
+                           {editData.subject_id && subjects.find(s => s.id === editData.subject_id) ? (
+                             <div className="flex items-center gap-2">
+                               <div className="w-2 h-2 rounded-full" style={{ background: subjects.find(s => s.id === editData.subject_id)?.color_code }} />
+                               <span className="truncate">{subjects.find(s => s.id === editData.subject_id)?.name}</span>
+                             </div>
+                           ) : "选择学科"}
+                         </SelectValue>
+                       </SelectTrigger>
+                       <SelectContent>
+                         {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                       </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm font-bold text-foreground/80 truncate">{assignment.subject?.name || "未分类"}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5 overflow-hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 truncate">奖励积分</p>
+                  {isEditing ? (
+                    <Input 
+                      type="number"
+                      value={editData.reward_pts}
+                      onChange={(e) => setEditData({...editData, reward_pts: parseInt(e.target.value) || 0})}
+                      className="w-full h-9 px-3 text-xs font-bold text-amber-500 bg-background/50 border-amber-500/20 transition-all"
+                    />
+                  ) : (
+                    <p className="text-sm font-bold text-amber-500">{assignment.reward_pts} PTs</p>
+                  )}
+                </div>
+              </div>
 
-             <div className="flex items-center gap-4 group">
-               <div className="p-3 rounded-2xl bg-background shadow-sm border group-hover:bg-amber-500/5 transition-colors">
-                 <Star className="h-6 w-6 text-amber-500" />
-               </div>
-               <div className="flex-1">
-                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">奖励积分 / Rewards</p>
-                 {isEditing ? (
-                   <Input 
-                     type="number"
-                     value={editData.reward_pts}
-                     onChange={(e) => setEditData({...editData, reward_pts: parseInt(e.target.value) || 0})}
-                     className="h-8 py-0.5 text-sm font-bold text-amber-500 bg-background/50 border-amber-500/20 w-24 mt-0.5"
-                   />
-                 ) : (
-                   <p className="text-sm font-bold text-amber-500">
-                     {assignment.reward_pts} Points
-                   </p>
-                 )}
-               </div>
-             </div>
+              {/* 时间跨度 */}
+              <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-background border border-border/50 shadow-sm">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-primary" /> 开始
+                  </p>
+                  {isEditing ? (
+                    <Popover>
+                      <PopoverTrigger className="w-full">
+                        <div className="h-8 px-2 text-[11px] border rounded flex items-center bg-muted/20">
+                          {editData.start_date ? format(new Date(editData.start_date), "MM-dd") : "设置"}
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarUI mode="single" selected={editData.start_date ? new Date(editData.start_date) : undefined} onSelect={(d) => setEditData({...editData, start_date: d ? d.toISOString() : null})} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <p className="text-sm font-semibold text-foreground/70">
+                      {assignment.start_date ? format(new Date(assignment.start_date), 'MM月dd日') : "立即"}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-500" /> 截止
+                  </p>
+                  {isEditing ? (
+                    <Popover>
+                      <PopoverTrigger className="w-full">
+                        <div className="h-8 px-2 text-[11px] border rounded flex items-center bg-muted/20">
+                          {editData.due_date ? format(new Date(editData.due_date), "MM-dd") : "设置"}
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarUI mode="single" selected={editData.due_date ? new Date(editData.due_date) : undefined} onSelect={(d) => setEditData({...editData, due_date: d ? d.toISOString() : null})} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <p className="text-sm font-semibold text-foreground/70">
+                      {dueDate ? format(dueDate, 'MM月dd日') : "未设置"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">
             <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
-              <Info className="w-4 h-4 text-primary" /> 作业详情内容 {isEditing && "(Obsidian 实时预览模式)"}
+              <Info className="w-4 h-4 text-primary" /> 作业详情内容 {isEditing && "(Obsidian 融合预览模式)"}
             </h4>
 
             {isEditing ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
-                    <Edit2 className="w-3 h-3" /> 编辑源码
-                  </div>
-                  <Textarea 
-                    value={editData.description}
-                    onChange={(e) => setEditData({...editData, description: e.target.value})}
-                    className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[250px] lg:min-h-[300px] focus-visible:ring-primary/30 font-mono resize-none overflow-y-auto"
-                    placeholder="支持 Markdown 格式..."
-                  />
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
-                    <Eye className="w-3 h-3" /> 实时预览效果
-                  </div>
-                  <div className="p-8 rounded-3xl bg-muted/20 border border-border/40 min-h-[250px] lg:min-h-[300px] overflow-y-auto backdrop-blur-sm">
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
-                      <ReactMarkdown>{editData.description || "新内容将在此实时排版展示..."}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <MarkdownEditor 
+                value={editData.description}
+                onChange={(val: string) => setEditData({...editData, description: val})}
+                minHeight="250px"
+              />
             ) : (
               <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[120px]">
                 <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
-                  <ReactMarkdown>{assignment.description || "暂无具体详情描述。"}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                      p: ({ children }) => <div className="mb-4 last:mb-0">{children}</div>,
+                      img: ({ ...props }) => (
+                        <ImageZoom 
+                          src={(props.src as string) || ""} 
+                          alt={props.alt || ""} 
+                          className="rounded-xl border border-border/40 shadow-sm w-[200px] h-[200px] object-cover !inline-block mr-4 mb-4" 
+                        />
+                      ),
+                      a: ({ ...props }) => (
+                        <a 
+                          {...props} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline font-medium"
+                        />
+                      ),
+                    }}
+                  >
+                    {cleanMarkdown(assignment.description || "暂无具体详情描述。")}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
