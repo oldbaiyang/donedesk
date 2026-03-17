@@ -12,6 +12,7 @@ export type Attachment = {
   file_url: string;
   file_type: string;
   file_name: string;
+  purpose: 'material' | 'submission';
   created_at: string;
 };
 
@@ -24,7 +25,9 @@ export type Assignment = {
   status: 'pending' | 'in_progress' | 'completed';
   start_date: string | null;
   due_date: string | null;
+  completed_at: string | null;
   reward_pts: number;
+  student_notes: string | null;
   subject?: Subject;
   attachments?: Attachment[];
 };

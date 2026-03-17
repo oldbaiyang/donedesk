@@ -21,7 +21,7 @@ type AssignmentsContextType = {
   addAssignment: (data: Partial<Assignment>) => Promise<Assignment | null>;
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
-  uploadAttachment: (assignmentId: string, file: File) => Promise<boolean>;
+  uploadAttachment: (assignmentId: string, file: File, purpose?: 'material' | 'submission') => Promise<boolean>;
   addStudent: (fullName: string) => Promise<Profile | null>;
   updateStudent: (id: string, updates: Partial<Profile>) => Promise<boolean>;
 };
@@ -155,7 +155,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return null;
   };
 
-  const uploadAttachment = async (assignmentId: string, file: File): Promise<boolean> => {
+  const uploadAttachment = async (assignmentId: string, file: File, purpose: 'material' | 'submission' = 'material'): Promise<boolean> => {
     if (!userId) return false;
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -178,7 +178,8 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       assignment_id: assignmentId,
       file_name: file.name,
       file_type: file.type || 'unknown',
-      file_url: publicUrl
+      file_url: publicUrl,
+      purpose: purpose
     });
 
     if (!dbError) {

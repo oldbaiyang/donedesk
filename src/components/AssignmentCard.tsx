@@ -93,14 +93,16 @@ export function AssignmentCard({ assignment }: Props) {
                     </p>
                   );
                 })()}
-                {/* 附件展示模块 */}
-                {!!assignment.attachments?.length && (
+                {/* 附件展示模块：仅展示教学资料 */}
+                {!!assignment.attachments?.filter(a => (a.purpose || 'material') === 'material').length && (
                   <div className="flex flex-wrap gap-2 mt-2.5">
-                    {assignment.attachments.map(att => (
-                      <a key={att.id} href={att.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-primary font-medium hover:underline bg-primary/10 border border-primary/20 px-2 py-1 rounded-md transition-colors hover:bg-primary/20">
-                        <Paperclip className="w-3 h-3" /> {att.file_name}
-                      </a>
-                    ))}
+                    {assignment.attachments
+                      .filter(a => (a.purpose || 'material') === 'material')
+                      .map(att => (
+                        <a key={att.id} href={att.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-primary font-medium hover:underline bg-primary/10 border border-primary/20 px-2 py-1 rounded-md transition-colors hover:bg-primary/20">
+                          <Paperclip className="w-3 h-3" /> {att.file_name}
+                        </a>
+                      ))}
                   </div>
                 )}
               </div>

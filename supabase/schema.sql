@@ -120,3 +120,18 @@ CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK ( bucket_
 
 DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
 CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING ( bucket_id = 'attachments' );
+-- 5. 如果 assignments 表已存在但缺少 student_notes，进行补齐
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assignments' AND column_name='student_notes') THEN
+    ALTER TABLE public.assignments ADD COLUMN student_notes TEXT;
+  END IF;
+END $$;
+
+-- 6. 如果 attachments 表已存在但缺少 purpose，进行补齐
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='purpose') THEN
+    ALTER TABLE public.attachments ADD COLUMN purpose TEXT DEFAULT 'material'; -- 'material' (资料) 或 'submission' (作业提交)
+  END IF;
+END $$;
