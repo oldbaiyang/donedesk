@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { Profile } from "@/types/assignment"
 
@@ -8,11 +8,15 @@ export function useUser() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const lastFetchedId = useRef<string | null>(null)
 
   const fetchProfile = useCallback(async (userId: string) => {
+    // 简单的并发防护：如果正在获取同一个 ID，则跳过
+    if (lastFetchedId.current === userId && profile) return
+    lastFetchedId.current = userId
+    
     setLoading(true)
     try {
-      // 1. 尝试获取现有 Profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -20,15 +24,18 @@ export function useUser() {
         .maybeSingle()
 
       if (error) {
+        // 如果是终止错误，通常是因为短时间内多次触发，可以忽略
+        if (error.message?.includes("AbortError")) {
+          console.warn("Profile fetch aborted due to concurrency.")
+          return
+        }
         console.error("Fetch profile error details (Stringified):", JSON.stringify(error, null, 2))
-        console.error("Fetch profile error raw:", error)
         return
       }
 
       if (data) {
         setProfile(data)
       } else {
-        // 2. 如果不存在，强制创建一个家长角色 (因为目前只有家长通过 Auth 注册)
         const { data: userResponse } = await supabase.auth.getUser()
         const email = userResponse?.user?.email
         
@@ -36,15 +43,13 @@ export function useUser() {
           .from('profiles')
           .insert({
             user_id: userId,
-            role: 'parent', // 核心修正：强制锁定为 parent
+            role: 'parent',
             full_name: email?.split('@')[0] || '管家'
           })
           .select()
           .single()
         
-        if (createError) {
-          console.error("Create profile error:", createError)
-        } else {
+        if (!createError) {
           setProfile(newProfile)
         }
       }
@@ -53,26 +58,17 @@ export function useUser() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [profile])
 
   useEffect(() => {
-    // 监听 Auth 状态
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    }
-
-    initAuth()
-
+    // 统一通过 onAuthStateChange 处理初始化和变更
+    // 这能有效防止 initAuth() 和 onAuthStateChange() 引起的并发冲突
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      
+      if (currentUser) {
+        await fetchProfile(currentUser.id)
       } else {
         setProfile(null)
         setLoading(false)
