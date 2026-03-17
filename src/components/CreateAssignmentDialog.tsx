@@ -10,9 +10,10 @@ import { Textarea } from "./ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar } from "./ui/calendar"
-import { CalendarIcon, Loader2, Plus, Paperclip, X } from "lucide-react"
+import { CalendarIcon, Loader2, Plus, Paperclip, X, Pencil, Eye } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
 
 type Props = {
   open: boolean;
@@ -25,6 +26,7 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false)
   const [isAddingSubject, setIsAddingSubject] = useState(false)
   const [newSubjectName, setNewSubjectName] = useState("")
+  const [showPreview, setShowPreview] = useState(false)
 
   // 同步初始化拉取最新列表
   useEffect(() => {
@@ -186,17 +188,50 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
             </Popover>
           </div>
 
-          <div className="space-y-2">
-            <Label>作业详情</Label>
-            <Textarea
-              placeholder="支持 Markdown 格式，例如：
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold text-foreground/70">作业详情</Label>
+              <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 shrink-0">
+                <button 
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
+                    !showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Pencil className="w-3 h-3" /> 编辑
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
+                    showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Eye className="w-3 h-3" /> 预览
+                </button>
+              </div>
+            </div>
+
+            {showPreview ? (
+              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[150px]">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
+                  <ReactMarkdown>{desc || "暂无预览内容。写入 Markdown 格式以查看排版效果..."}</ReactMarkdown>
+                </div>
+              </div>
+            ) : (
+              <Textarea
+                placeholder="支持 Markdown 格式，例如：
 # 核心要求
 - 完成习题 1-5
 - 复习第三章 **重点内容**"
-              className="min-h-[120px] resize-none font-mono"
-              value={desc}
-              onChange={e => setDesc(e.target.value)}
-            />
+                className="min-h-[150px] resize-none font-mono p-6 rounded-3xl bg-background/50 border-primary/10 focus-visible:ring-primary/20"
+                value={desc}
+                onChange={e => setDesc(e.target.value)}
+              />
+            )}
           </div>
 
           <div className="space-y-2">
