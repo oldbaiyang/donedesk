@@ -11,10 +11,9 @@ import { AssignmentDetailDialog } from "./AssignmentDetailDialog";
 
 type Props = {
   assignment: Assignment;
-  onToggleStatus: (id: string, currentStatus: string) => void;
 };
 
-export function AssignmentCard({ assignment, onToggleStatus }: Props) {
+export function AssignmentCard({ assignment }: Props) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const isCompleted = assignment.status === "completed";
@@ -40,17 +39,13 @@ export function AssignmentCard({ assignment, onToggleStatus }: Props) {
         )}
         
         <div className="flex gap-4 items-start relative z-10">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleStatus(assignment.id, assignment.status);
-            }}
-            className={cn("mt-1 shrink-0 transition-all duration-300 hover:scale-125 focus:scale-95", 
-              isCompleted ? "text-emerald-500 drop-shadow-sm" : "text-muted-foreground hover:text-primary drop-shadow-none cursor-pointer"
-            )}
-          >
-            {isCompleted ? <CheckCircle2 className="h-7 w-7" /> : <Circle className="h-7 w-7 stroke-[1.5]" />}
-          </button>
+        <div 
+          className={cn("mt-1 shrink-0 transition-all duration-300", 
+            isCompleted ? "text-emerald-500 drop-shadow-sm" : "text-muted-foreground drop-shadow-none"
+          )}
+        >
+          {isCompleted ? <CheckCircle2 className="h-7 w-7" /> : <Circle className="h-7 w-7 stroke-[1.5]" />}
+        </div>
 
           <div className="flex-1 space-y-2 text-left">
             <div className="flex justify-between items-start gap-2">

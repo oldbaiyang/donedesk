@@ -5,17 +5,14 @@ import { useAssignments } from "@/hooks/useAssignments";
 import { AssignmentCard } from "@/components/AssignmentCard";
 
 export default function AssignmentsPage() {
-  const { assignments, fetchAssignments, fetchSubjects, updateAssignmentStatus } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects } = useAssignments();
 
   useEffect(() => {
     fetchSubjects();
     fetchAssignments();
   }, [fetchSubjects, fetchAssignments]);
 
-  const toggleStatus = (id: string, current: string) => {
-    const newStatus = current === 'completed' ? 'pending' : 'completed';
-    updateAssignmentStatus(id, newStatus);
-  };
+
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -30,7 +27,7 @@ export default function AssignmentsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4">
         {assignments.map(item => (
-          <AssignmentCard key={item.id} assignment={item} onToggleStatus={toggleStatus} />
+          <AssignmentCard key={item.id} assignment={item} />
         ))}
 
         {assignments.length === 0 && (

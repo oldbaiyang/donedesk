@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function Dashboard() {
-  const { assignments, fetchAssignments, fetchSubjects, updateAssignmentStatus } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects } = useAssignments();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   // 组件挂载时获取数据
@@ -16,11 +16,6 @@ export default function Dashboard() {
     fetchSubjects();
     fetchAssignments();
   }, [fetchSubjects, fetchAssignments]);
-
-  const toggleStatus = (id: string, current: string) => {
-    const newStatus = current === 'completed' ? 'pending' : 'completed';
-    updateAssignmentStatus(id, newStatus);
-  };
 
   const pendingAssignments = assignments.filter(a => a.status !== 'completed');
   const completedAssignments = assignments.filter(a => a.status === 'completed');
@@ -51,7 +46,7 @@ export default function Dashboard() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pendingAssignments.map(item => (
-              <AssignmentCard key={item.id} assignment={item} onToggleStatus={toggleStatus} />
+              <AssignmentCard key={item.id} assignment={item} />
             ))}
           </div>
         </section>
@@ -67,7 +62,7 @@ export default function Dashboard() {
            </h2>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 opacity-80 hover:opacity-100 transition-opacity duration-500">
             {completedAssignments.map(item => (
-              <AssignmentCard key={item.id} assignment={item} onToggleStatus={toggleStatus} />
+              <AssignmentCard key={item.id} assignment={item} />
             ))}
           </div>
         </section>

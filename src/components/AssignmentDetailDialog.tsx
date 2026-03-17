@@ -1,11 +1,11 @@
-"use client"
-
-import { Assignment } from "@/hooks/useAssignments"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog"
+import { Assignment, useAssignments } from "@/hooks/useAssignments"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog"
+import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { Calendar, Paperclip, Star, Info } from "lucide-react"
+import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 type Props = {
   assignment: Assignment | null
@@ -14,10 +14,22 @@ type Props = {
 }
 
 export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props) {
+  const { updateAssignmentStatus } = useAssignments();
+  const [loading, setLoading] = useState(false);
+
   if (!assignment) return null
 
   const dueDate = assignment.due_date ? new Date(assignment.due_date) : null
   const isCompleted = assignment.status === "completed"
+
+  const handleToggleStatus = async () => {
+    setLoading(true);
+    const newStatus = isCompleted ? 'in_progress' : 'completed';
+    await updateAssignmentStatus(assignment.id, newStatus);
+    setLoading(false);
+    // 可选：完成时自动关闭弹窗
+    // if (newStatus === 'completed') onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,6 +138,34 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
           <div className="pt-2 text-[10px] text-center text-muted-foreground/40 font-medium italic">
             记得在完成后回来打钩，领取你的积分奖牌！
           </div>
+        </div>
+
+        {/* 底部操作固定栏 */}
+        <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-3">
+          <Button 
+            disabled={loading}
+            onClick={handleToggleStatus}
+            className={cn(
+              "w-full max-w-sm h-12 rounded-2xl font-bold text-base transition-all active:scale-95 shadow-lg",
+              isCompleted 
+                ? "bg-slate-200 text-slate-500 hover:bg-slate-300 shadow-none border border-slate-300" 
+                : "bg-primary text-primary-foreground hover:shadow-primary/25"
+            )}
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isCompleted ? (
+              <>
+                <RotateCcw className="w-5 h-5 mr-2" />
+                撤回并标记为进行中
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                确认作业已完成
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
