@@ -245,52 +245,7 @@ export default function ProfilePage() {
 
         {/* 右侧 */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative min-h-[300px]">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-accent/10 text-accent">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-black text-foreground">家庭成员</h3>
-              </div>
-              {profile?.role === 'parent' && (
-                <Button variant="outline" className="rounded-xl font-bold border-accent/20 text-accent hover:bg-accent/10">
-                  <Plus className="mr-1 h-4 w-4" /> 添加学生
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {profiles.map((p) => (
-                <div 
-                  key={p.id}
-                  className="p-4 rounded-3xl bg-muted/20 border border-border/10 flex items-center gap-4 hover:bg-muted/40 transition-colors group cursor-pointer"
-                >
-                  <img 
-                    src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.full_name}`} 
-                    className="h-12 w-12 rounded-2xl bg-background border border-border/10 shadow-sm"
-                    alt={p.full_name || ""}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground">{p.full_name}</span>
-                      {p.role === 'parent' && <Badge className="text-[9px] h-4 bg-primary text-white border-none">您</Badge>}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{p.role === 'parent' ? "家庭管理员" : "学生子账号"}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                </div>
-              ))}
-            </div>
-            
-            {profiles.length <= 1 && profile?.role === 'parent' && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center mb-4 text-muted-foreground italic font-black text-2xl">?</div>
-                <p className="text-muted-foreground font-medium mb-2">还没有添加学生账号</p>
-                <p className="text-xs text-muted-foreground/60 max-w-[240px]">添加学生后，您可以为他们分配专属的学习任务和励志积分。</p>
-              </div>
-            )}
-          </Card>
+          <FamilySection />
 
           {/* 密码修改部分 */}
           <PasswordChangeSection />
@@ -446,6 +401,115 @@ function PasswordChangeSection() {
               取消
             </Button>
           </div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function FamilySection() {
+  const { profile } = useUser()
+  const { profiles, addStudent } = useAssignmentsContext()
+  const [isAdding, setIsAdding] = useState(false)
+  const [newName, setNewName] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return
+    setLoading(true)
+    try {
+      const resp = await addStudent(newName.trim())
+      if (resp) {
+        setNewName("")
+        setIsAdding(false)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative min-h-[300px]">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-accent/10 text-accent">
+            <Users className="h-6 w-6" />
+          </div>
+          <h3 className="text-xl font-black text-foreground">家庭成员</h3>
+        </div>
+        {profile?.role === 'parent' && !isAdding && (
+          <Button 
+            onClick={() => setIsAdding(true)}
+            variant="outline" 
+            className="rounded-xl font-bold border-accent/20 text-accent hover:bg-accent/10"
+          >
+            <Plus className="mr-1 h-4 w-4" /> 添加学生
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        {isAdding && (
+          <div className="p-4 rounded-3xl bg-accent/5 border border-accent/10 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black text-accent uppercase ml-1">学生姓名</label>
+              <div className="flex gap-2">
+                <Input 
+                  autoFocus
+                  placeholder="输入孩子姓名"
+                  className="h-11 rounded-xl bg-background/60 border-accent/10"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                />
+                <Button 
+                  disabled={loading || !newName.trim()} 
+                  onClick={handleAdd}
+                  className="h-11 px-6 rounded-xl bg-accent text-white font-bold"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "确认"}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setIsAdding(false)}
+                  className="h-11 rounded-xl text-muted-foreground"
+                >
+                  取消
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {profiles.map((p) => (
+            <div 
+              key={p.id}
+              className="p-4 rounded-3xl bg-muted/20 border border-border/10 flex items-center gap-4 hover:bg-muted/40 transition-colors group cursor-pointer"
+            >
+              <img 
+                src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.full_name}`} 
+                className="h-12 w-12 rounded-2xl bg-background border border-border/10 shadow-sm"
+                alt={p.full_name || ""}
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-foreground">{p.full_name}</span>
+                  {p.role === 'parent' && <Badge className="text-[9px] h-4 bg-primary text-white border-none">您</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">{p.role === 'parent' ? "家庭管理员" : "学生子账号"}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {profiles.length <= 1 && profile?.role === 'parent' && !isAdding && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center mb-4 text-muted-foreground italic font-black text-2xl">?</div>
+          <p className="text-muted-foreground font-medium mb-2">还没有添加学生账号</p>
+          <p className="text-xs text-muted-foreground/60 max-w-[240px]">添加学生后，您可以为他们分配专属的学习任务和励志积分。</p>
         </div>
       )}
     </Card>

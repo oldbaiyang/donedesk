@@ -22,6 +22,7 @@ type AssignmentsContextType = {
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File) => Promise<boolean>;
+  addStudent: (fullName: string) => Promise<Profile | null>;
 };
 
 const AssignmentsContext = createContext<AssignmentsContextType | undefined>(undefined);
@@ -207,6 +208,36 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     await updateAssignment(id, updatePayload);
   };
 
+  const addStudent = async (fullName: string): Promise<Profile | null> => {
+    if (profile?.role !== 'parent') return null;
+    
+    // 生成一个基于名字的随机头像种子
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName)}`;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({ 
+        parent_id: profile.id, 
+        full_name: fullName, 
+        role: 'student',
+        avatar_url: avatarUrl
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+       await fetchProfiles();
+       // 重新获取学科以确保权限同步（虽然学科是跟着家长走的）
+       await fetchSubjects();
+       return data as Profile;
+     }
+    
+    if (error) {
+      console.error("Error adding student:", JSON.stringify(error, null, 2));
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (profile) {
       fetchProfiles();
@@ -237,7 +268,8 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       addAssignment,
       updateAssignment,
       updateAssignmentStatus,
-      uploadAttachment
+      uploadAttachment,
+      addStudent
     }}>
       {children}
     </AssignmentsContext.Provider>
