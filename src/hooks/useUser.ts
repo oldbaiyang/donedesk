@@ -1,23 +1,69 @@
 "use client"
 
-import { useEffect, useState } from "react";
-
-// 单机版临时测试 UUID
-const MOCK_USER_ID = "123e4567-e89b-12d3-a456-426614174000";
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import { Profile } from "@/types/assignment"
 
 export function useUser() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 真实情况可接入 Supabase Auth
-    // 此处由于单学生使用，直接给它一个固定不变的 UUID 或利用 LocalStorage 保持持久态
-    let storedId = localStorage.getItem("donedesk_user_id");
-    if (!storedId) {
-       localStorage.setItem("donedesk_user_id", MOCK_USER_ID);
-       storedId = MOCK_USER_ID;
-    }
-    setUserId(storedId);
-  }, []);
+    // 1. 监听 Auth 状态
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
 
-  return { userId };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfile(session.user.id)
+      } else {
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (error && error.code === 'PGRST116') {
+        // Profile 不存在，通常是刚注册的家长，需要自动创建
+        const { data: userData } = await supabase.auth.getUser()
+        if (userData?.user) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              role: 'parent',
+              full_name: userData.user.email?.split('@')[0] || '家长'
+            })
+            .select()
+            .single()
+          
+          if (!createError) setProfile(newProfile)
+        }
+      } else if (!error) {
+        setProfile(data)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { user, profile, userId: user?.id, loading }
 }

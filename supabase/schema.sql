@@ -1,25 +1,34 @@
--- 启用 UUID 扩展
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- 1. 用户属性表 profiles
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  role TEXT NOT NULL CHECK (role IN ('parent', 'student')),
+  parent_id UUID REFERENCES public.profiles(id), -- 如果是学生，指向其家长
+  username TEXT UNIQUE,                          -- 学生登录名
+  full_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- 只有家长会关联 auth.users
+  user_id UUID UNIQUE
+);
 
--- 1. 学科分类表 subjects
+-- 2. 学科分类表 subjects
 CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL,
+  parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color_code TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
-  -- 如果使用 Supabase Auth, 可以关联 auth.users
-  -- CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE
 );
 
--- 2. 核心作业表 assignments
+-- 3. 核心作业表 assignments
 CREATE TABLE IF NOT EXISTS public.assignments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES public.subjects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+  start_date TIMESTAMPTZ DEFAULT NOW(),
   due_date TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   time_spent INTEGER DEFAULT 0,
@@ -47,17 +56,19 @@ CREATE TABLE IF NOT EXISTS public.wishlist (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 设置 RLS (Row Level Security) - 请根据具体 Auth 需求完善
+-- 设置 RLS (Row Level Security)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
 
--- 允许匿名访问的测试策略（生产环境请修改为基于 auth.uid() 的安全规则）
-CREATE POLICY "Enable all for all users" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for all users" ON public.assignments FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for all users" ON public.attachments FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for all users" ON public.wishlist FOR ALL USING (true) WITH CHECK (true);
+-- 极简策略：允许所有操作（正式环境请改为基于 auth.uid() 的 parent_id/student_id 校验）
+CREATE POLICY "Public full access" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access" ON public.assignments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access" ON public.attachments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access" ON public.wishlist FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. 初始化 Storage Bucket 用于存储上传的附件
 INSERT INTO storage.buckets (id, name, public) 

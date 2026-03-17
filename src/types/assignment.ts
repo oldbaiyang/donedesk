@@ -1,5 +1,6 @@
 export type Subject = {
   id: string;
+  parent_id: string;
   name: string;
   color_code: string;
   created_at?: string;
@@ -16,6 +17,7 @@ export type Attachment = {
 
 export type Assignment = {
   id: string;
+  student_id: string;
   subject_id: string;
   title: string;
   description: string | null;
@@ -25,4 +27,15 @@ export type Assignment = {
   reward_pts: number;
   subject?: Subject;
   attachments?: Attachment[];
+};
+
+export type Profile = {
+  id: string;
+  role: 'parent' | 'student';
+  parent_id: string | null;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  user_id: string | null;
+  created_at?: string;
 };

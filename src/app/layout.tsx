@@ -1,7 +1,11 @@
+"use client"
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { AssignmentsProvider } from "@/providers/AssignmentsProvider";
+import { useUser } from "@/hooks/useUser";
+import AuthPage from "./auth/page";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,11 +18,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "DoneDesk - 最强学生作业管理",
-  description: "拒绝遗忘，防零散的任务和附件沉淀打卡系统",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,19 +29,42 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-primary/20 bg-background text-foreground`}
       >
         <AssignmentsProvider>
-          <div className="flex h-screen overflow-hidden bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
-            {/* 玻璃感网点装饰背景 */}
-            <div className="absolute inset-0 z-[-1] bg-[url('https://api.typedream.com/v0/document/public/8c34614a-5c2f-4886-abe8-06ccfbf9a63c/r4m4p8H2XvL7C70Hpwl8Xg8W06H.svg')] opacity-[0.4] bg-[length:24px_24px]"></div>
-
-            <Navigation />
-            <main className="flex-1 overflow-y-auto pb-20 md:pb-0 md:pl-64 relative z-0 scroll-smooth">
-              <div className="container p-4 md:p-8 lg:p-12 max-w-6xl mx-auto">
-                {children}
-              </div>
-            </main>
-          </div>
+          <AuthWrapper>{children}</AuthWrapper>
         </AssignmentsProvider>
       </body>
     </html>
+  );
+}
+
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="relative">
+          <div className="h-24 w-24 rounded-full border-t-2 border-primary animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center font-black text-primary italic text-xl">D</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
+      {/* 玻璃感网点装饰背景 */}
+      <div className="absolute inset-0 z-[-1] bg-[url('https://api.typedream.com/v0/document/public/8c34614a-5c2f-4886-abe8-06ccfbf9a63c/r4m4p8H2XvL7C70Hpwl8Xg8W06H.svg')] opacity-[0.4] bg-[length:24px_24px]"></div>
+
+      <Navigation />
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0 md:pl-64 relative z-0 scroll-smooth">
+        <div className="container p-4 md:p-8 lg:p-12 max-w-6xl mx-auto">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 }

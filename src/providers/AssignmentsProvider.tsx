@@ -3,14 +3,18 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
-import { Assignment, Subject, Attachment } from "@/types/assignment";
+import { Assignment, Subject, Profile } from "@/types/assignment";
 
 type AssignmentsContextType = {
   assignments: Assignment[];
   subjects: Subject[];
+  profiles: Profile[]; // 该家庭下的所有成员
+  activeStudentId: string | null;
+  setActiveStudentId: (id: string | null) => void;
   loading: boolean;
   fetchSubjects: () => Promise<void>;
   fetchAssignments: () => Promise<void>;
+  fetchProfiles: () => Promise<void>;
   addSubject: (name: string, colorCode: string) => Promise<Subject | null>;
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
@@ -23,34 +27,86 @@ type AssignmentsContextType = {
 const AssignmentsContext = createContext<AssignmentsContextType | undefined>(undefined);
 
 export function AssignmentsProvider({ children }: { children: React.ReactNode }) {
-  const { userId } = useUser();
+  const { profile, userId } = useUser();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // 获取该家庭下的所有成员（家长找学生，学生找同学+家长，逻辑暂定为家长找自己所有学生）
+  const fetchProfiles = useCallback(async () => {
+    if (!profile) return;
+    
+    // 如果是家长，获取自己创建的所有学生
+    if (profile.role === 'parent') {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`id.eq.${profile.id},parent_id.eq.${profile.id}`)
+        .order('role', { ascending: false }); // parent first
+      
+      if (!error) {
+        setProfiles(data || []);
+        // 默认选中第一个学生（如果有）
+        const firstStudent = data?.find(p => p.role === 'student');
+        if (firstStudent && !activeStudentId) {
+          setActiveStudentId(firstStudent.id);
+        }
+      }
+    } else {
+      // 学生当前直接看自己及其家庭
+      setProfiles([profile]);
+      setActiveStudentId(profile.id);
+    }
+  }, [profile, activeStudentId]);
+
   const fetchSubjects = useCallback(async () => {
-    if (!userId) return;
+    // 学科属于家长
+    const pId = profile?.role === 'parent' ? profile.id : profile?.parent_id;
+    if (!pId) return;
+
     const { data, error } = await supabase
       .from('subjects')
       .select('*')
-      .eq('user_id', userId)
+      .eq('parent_id', pId)
       .order('created_at', { ascending: true });
     
     if (error) console.error("Error fetching subjects:", error);
     else setSubjects(data || []);
-  }, [userId]);
+  }, [profile]);
+
+  const fetchAssignments = useCallback(async () => {
+    const sId = activeStudentId;
+    if (!sId) return;
+
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('assignments')
+      .select(`
+        *,
+        subject:subjects (id, name, color_code),
+        attachments:attachments (*)
+      `)
+      .eq('student_id', sId)
+      .order('due_date', { ascending: true });
+
+    if (error) console.error("Error fetching assignments:", error);
+    else setAssignments(data as any || []);
+    setLoading(false);
+  }, [activeStudentId]);
 
   const addSubject = async (name: string, colorCode: string): Promise<Subject | null> => {
-    if (!userId) return null;
+    if (profile?.role !== 'parent') return null;
     const { data, error } = await supabase
       .from('subjects')
-      .insert({ user_id: userId, name, color_code: colorCode })
+      .insert({ parent_id: profile.id, name, color_code: colorCode })
       .select()
       .single();
     if (!error) {
        await fetchSubjects();
        return data as Subject;
-    }
+     }
     return null;
   };
 
@@ -70,29 +126,11 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     if (!error) await fetchSubjects();
   };
 
-  const fetchAssignments = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('assignments')
-      .select(`
-        *,
-        subject:subjects (id, name, color_code),
-        attachments:attachments (*)
-      `)
-      .eq('user_id', userId)
-      .order('due_date', { ascending: true });
-
-    if (error) console.error("Error fetching assignments:", error);
-    else setAssignments(data as any || []);
-    setLoading(false);
-  }, [userId]);
-
   const addAssignment = async (data: Partial<Assignment>): Promise<Assignment | null> => {
-    if (!userId) return null;
+    if (!activeStudentId) return null;
     const { data: record, error } = await supabase
       .from('assignments')
-      .insert({ ...data, user_id: userId })
+      .insert({ ...data, student_id: activeStudentId })
       .select()
       .single();
     if (!error) {
@@ -103,6 +141,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
   };
 
   const uploadAttachment = async (assignmentId: string, file: File): Promise<boolean> => {
+    if (!userId) return false;
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
@@ -155,21 +194,30 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     await updateAssignment(id, updatePayload);
   };
 
-  // 这里的 useEffect 确保一旦 userId 可用，数据就会加载
   useEffect(() => {
-    if (userId) {
+    if (profile) {
+      fetchProfiles();
       fetchSubjects();
+    }
+  }, [profile, fetchProfiles, fetchSubjects]);
+
+  useEffect(() => {
+    if (activeStudentId) {
       fetchAssignments();
     }
-  }, [userId, fetchSubjects, fetchAssignments]);
+  }, [activeStudentId, fetchAssignments]);
 
   return (
     <AssignmentsContext.Provider value={{
       assignments,
       subjects,
+      profiles,
+      activeStudentId,
+      setActiveStudentId,
       loading,
       fetchSubjects,
       fetchAssignments,
+      fetchProfiles,
       addSubject,
       updateSubject,
       deleteSubject,
