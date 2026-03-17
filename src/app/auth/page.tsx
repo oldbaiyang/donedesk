@@ -15,19 +15,29 @@ export default function AuthPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const handleAuth = async (type: 'login' | 'signup') => {
+    if (!email || !password) {
+      setMessage({ type: 'error', text: "请填写完整邮箱和密码" })
+      return
+    }
+
     setLoading(true)
     setMessage(null)
     
-    const { error } = type === 'login' 
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password })
+    try {
+      const { error } = type === 'login' 
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password })
 
-    if (error) {
-      setMessage({ type: 'error', text: error.message })
-    } else if (type === 'signup') {
-      setMessage({ type: 'success', text: "注册成功！请检查邮箱进行验证（如果开启了策略）或直接登录。" })
+      if (error) {
+        setMessage({ type: 'error', text: error.message })
+      } else if (type === 'signup') {
+        setMessage({ type: 'success', text: "注册指令已发送！请检查邮箱（或直接尝试登录，取决于项目配置）。" })
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: "连接失败，请检查网络或配置" })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -54,18 +64,18 @@ export default function AuthPage() {
 
           <Tabs defaultValue="login" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 bg-muted/20 p-1 rounded-2xl">
-              <TabsTrigger value="login" className="rounded-xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">登录</TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">注册家长</TabsTrigger>
+              <TabsTrigger value="login" className="rounded-xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300">登录</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300">注册家长</TabsTrigger>
             </TabsList>
 
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="relative">
-                  <Mail className="absolute left-4 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground/60" />
                   <Input 
                     type="email" 
                     placeholder="邮箱地址" 
-                    className="pl-11 h-12 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/30 transition-all font-medium"
+                    className="pl-11 h-12 bg-muted/20 border-border/20 rounded-xl focus-visible:ring-primary/20 transition-all font-medium text-foreground"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -73,11 +83,11 @@ export default function AuthPage() {
               </div>
               <div className="space-y-2">
                 <div className="relative">
-                  <Lock className="absolute left-4 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground/60" />
                   <Input 
                     type="password" 
                     placeholder="登录密码" 
-                    className="pl-11 h-12 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/30 transition-all font-medium"
+                    className="pl-11 h-12 bg-muted/20 border-border/20 rounded-xl focus-visible:ring-primary/20 transition-all font-medium text-foreground"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -86,7 +96,7 @@ export default function AuthPage() {
             </div>
 
             {message && (
-              <div className={`p-4 rounded-2xl text-xs font-bold animate-in fade-in slide-in-from-top-2 ${
+              <div className={`p-4 rounded-2xl text-[11px] leading-relaxed font-bold animate-in zoom-in-95 duration-300 ${
                 message.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
               }`}>
                 {message.text}
@@ -97,26 +107,41 @@ export default function AuthPage() {
               <Button 
                 disabled={loading} 
                 onClick={() => handleAuth('login')}
-                className="w-full h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/20 group relative overflow-hidden active:scale-95 transition-all"
+                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-primary/20 group relative overflow-hidden active:scale-[0.98] transition-all bg-primary text-white"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary via-indigo-600 to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative flex items-center justify-center">
-                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
-                  开启学习魔法 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  {loading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-5 w-5" />
+                      开启学习魔法 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
                 </div>
               </Button>
             </TabsContent>
 
-            <TabsContent value="signup">
+            <TabsContent value="signup" className="space-y-4">
               <Button 
                 disabled={loading} 
                 onClick={() => handleAuth('signup')}
-                className="w-full h-12 rounded-2xl font-bold text-base bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20 group active:scale-95 transition-all"
+                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-accent/20 group relative overflow-hidden active:scale-[0.98] transition-all bg-accent text-white"
               >
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <UserPlus className="mr-2 h-5 w-5" />}
-                注册家长管理员
+                <div className="absolute inset-0 bg-gradient-to-r from-accent via-purple-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative flex items-center justify-center">
+                  {loading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-5 w-5" />
+                      注册家长管理员
+                    </>
+                  )}
+                </div>
               </Button>
-              <p className="text-[10px] text-center text-muted-foreground mt-4 px-4">
+              <p className="text-[10px] text-center text-muted-foreground/60 leading-relaxed px-4">
                 点击注册即表示您同意我们的服务协议，学生账号将在您进入系统后一键创建。
               </p>
             </TabsContent>
