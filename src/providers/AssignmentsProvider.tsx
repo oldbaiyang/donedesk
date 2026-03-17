@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
+import { compressImage } from "@/lib/image";
 import { Assignment, Subject, Profile } from "@/types/assignment";
 
 type AssignmentsContextType = {
@@ -161,9 +162,20 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
 
+    let uploadData: File | Blob = file;
+    
+    // 如果是图片，先进行压缩处理
+    if (file.type.startsWith('image/')) {
+        try {
+            uploadData = await compressImage(file);
+        } catch (err) {
+            console.error("Compression failed, uploading original:", err);
+        }
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('attachments')
-      .upload(filePath, file);
+      .upload(filePath, uploadData);
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
