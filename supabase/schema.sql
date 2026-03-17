@@ -1,3 +1,6 @@
+-- 0. 启用 UUID 扩展
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- 1. 用户属性表 profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
