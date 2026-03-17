@@ -172,10 +172,10 @@ export default function AuthPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="relative">
-                    <Mail className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground/60" />
+                    <UserPlus className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground/60" />
                     <Input 
-                      type="email" 
-                      placeholder="邮箱地址" 
+                      type="text" 
+                      placeholder="邮箱或学生昵称" 
                       className="pl-11 h-12 bg-muted/20 border-border/20 rounded-xl focus-visible:ring-primary/20 transition-all font-medium text-foreground"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
