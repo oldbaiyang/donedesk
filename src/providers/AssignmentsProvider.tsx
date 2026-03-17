@@ -34,7 +34,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 获取该家庭下的所有成员（家长找学生，学生找同学+家长，逻辑暂定为家长找自己所有学生）
+  // 获取该家庭下的所有成员
   const fetchProfiles = useCallback(async () => {
     if (!profile) return;
     
@@ -44,25 +44,28 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
         .from('profiles')
         .select('*')
         .or(`id.eq.${profile.id},parent_id.eq.${profile.id}`)
-        .order('role', { ascending: false }); // parent first
+        .order('role', { ascending: false });
       
-      if (!error) {
-        setProfiles(data || []);
-        // 默认选中第一个学生（如果有）
-        const firstStudent = data?.find(p => p.role === 'student');
-        if (firstStudent && !activeStudentId) {
-          setActiveStudentId(firstStudent.id);
+      if (error) {
+        if (!error.message?.includes("Abort")) {
+          console.error("Error fetching profiles (Stringified):", JSON.stringify(error, null, 2));
         }
+        return;
+      }
+      
+      setProfiles(data || []);
+      // 默认选中第一个学生（如果有）
+      const firstStudent = data?.find(p => p.role === 'student');
+      if (firstStudent && !activeStudentId) {
+        setActiveStudentId(firstStudent.id);
       }
     } else {
-      // 学生当前直接看自己及其家庭
       setProfiles([profile]);
       setActiveStudentId(profile.id);
     }
   }, [profile, activeStudentId]);
 
   const fetchSubjects = useCallback(async () => {
-    // 学科属于家长
     const pId = profile?.role === 'parent' ? profile.id : profile?.parent_id;
     if (!pId) return;
 
@@ -72,8 +75,13 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       .eq('parent_id', pId)
       .order('created_at', { ascending: true });
     
-    if (error) console.error("Error fetching subjects:", error);
-    else setSubjects(data || []);
+    if (error) {
+      if (!error.message?.includes("Abort")) {
+        console.error("Error fetching subjects (Stringified):", JSON.stringify(error, null, 2));
+      }
+    } else {
+      setSubjects(data || []);
+    }
   }, [profile]);
 
   const fetchAssignments = useCallback(async () => {
@@ -91,8 +99,13 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       .eq('student_id', sId)
       .order('due_date', { ascending: true });
 
-    if (error) console.error("Error fetching assignments:", error);
-    else setAssignments(data as any || []);
+    if (error) {
+      if (!error.message?.includes("Abort")) {
+        console.error("Error fetching assignments (Stringified):", JSON.stringify(error, null, 2));
+      }
+    } else {
+      setAssignments(data as any || []);
+    }
     setLoading(false);
   }, [activeStudentId]);
 
