@@ -15,6 +15,7 @@ type AssignmentsContextType = {
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   addAssignment: (data: Partial<Assignment>) => Promise<Assignment | null>;
+  updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File) => Promise<boolean>;
 };
@@ -133,16 +134,20 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return false;
   };
 
+  const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
+    const { error } = await supabase
+      .from('assignments')
+      .update(updates)
+      .eq('id', id);
+    if (!error) await fetchAssignments();
+  };
+
   const updateAssignmentStatus = async (id: string, status: Assignment['status']) => {
     const updatePayload: any = { status };
     if (status === 'completed') {
        updatePayload.completed_at = new Date().toISOString();
     }
-    const { error } = await supabase
-      .from('assignments')
-      .update(updatePayload)
-      .eq('id', id);
-    if (!error) await fetchAssignments();
+    await updateAssignment(id, updatePayload);
   };
 
   // 这里的 useEffect 确保一旦 userId 可用，数据就会加载
@@ -164,6 +169,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       updateSubject,
       deleteSubject,
       addAssignment,
+      updateAssignment,
       updateAssignmentStatus,
       uploadAttachment
     }}>

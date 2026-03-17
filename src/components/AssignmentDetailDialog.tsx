@@ -2,10 +2,12 @@ import { Assignment, useAssignments } from "@/hooks/useAssignments"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2 } from "lucide-react"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 type Props = {
   assignment: Assignment | null
@@ -14,8 +16,30 @@ type Props = {
 }
 
 export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props) {
-  const { updateAssignmentStatus } = useAssignments();
+  const { updateAssignmentStatus, updateAssignment } = useAssignments();
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<{
+    title: string;
+    description: string;
+    reward_pts: number;
+  }>({
+    title: "",
+    description: "",
+    reward_pts: 0
+  });
+
+  // 当作业变更时同步编辑数据
+  useEffect(() => {
+    if (assignment) {
+      setEditData({
+        title: assignment.title,
+        description: assignment.description || "",
+        reward_pts: assignment.reward_pts
+      });
+      setIsEditing(false); // 每次切换作业时默认关闭编辑模式
+    }
+  }, [assignment]);
 
   if (!assignment) return null
 
@@ -27,13 +51,27 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
     const newStatus = isCompleted ? 'in_progress' : 'completed';
     await updateAssignmentStatus(assignment.id, newStatus);
     setLoading(false);
-    // 可选：完成时自动关闭弹窗
-    // if (newStatus === 'completed') onOpenChange(false);
+  };
+
+  const handleSaveEdit = async () => {
+    setLoading(true);
+    await updateAssignment(assignment.id, {
+      title: editData.title,
+      description: editData.description,
+      reward_pts: editData.reward_pts
+    });
+    setIsEditing(false);
+    setLoading(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0">
+    <Dialog open={open} onOpenChange={(val) => {
+        if (!loading) {
+            onOpenChange(val);
+            if (!val) setIsEditing(false);
+        }
+    }}>
+      <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0 overflow-hidden">
         {/* 顶部彩色装饰条 */}
         {assignment.subject && (
           <div 
@@ -42,13 +80,26 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
           />
         )}
         
-        <div className="p-8 space-y-8">
+        <div className="p-8 space-y-6">
           <DialogHeader className="space-y-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <DialogTitle className="text-3xl font-extrabold tracking-tight text-foreground/90">
-                  {assignment.title}
-                </DialogTitle>
+              <div className="space-y-3 flex-1">
+                {isEditing ? (
+                  <div className="space-y-2 pt-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">作业标题</label>
+                    <Input 
+                      value={editData.title}
+                      onChange={(e) => setEditData({...editData, title: e.target.value})}
+                      className="text-xl font-bold bg-background/50 border-primary/20 focus-visible:ring-primary/30"
+                      placeholder="输入作业标题..."
+                    />
+                  </div>
+                ) : (
+                  <DialogTitle className="text-3xl font-extrabold tracking-tight text-foreground/90">
+                    {assignment.title}
+                  </DialogTitle>
+                )}
+                
                 <div className="flex items-center gap-3">
                   {assignment.subject && (
                     <Badge 
@@ -68,6 +119,21 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                   </Badge>
                 </div>
               </div>
+              
+              {!isCompleted && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "rounded-xl transition-all",
+                    isEditing ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
+                  onClick={() => setIsEditing(!isEditing)}
+                  disabled={loading}
+                >
+                  {isEditing ? <X className="h-5 w-5" /> : <Edit2 className="h-5 w-5" />}
+                </Button>
+              )}
             </div>
           </DialogHeader>
 
@@ -89,11 +155,20 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                <div className="p-3 rounded-2xl bg-background shadow-sm border group-hover:bg-amber-500/5 transition-colors">
                  <Star className="h-6 w-6 text-amber-500" />
                </div>
-               <div>
+               <div className="flex-1">
                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">奖励积分 / Rewards</p>
-                 <p className="text-sm font-bold text-amber-500">
-                   {assignment.reward_pts} Points
-                 </p>
+                 {isEditing ? (
+                   <Input 
+                     type="number"
+                     value={editData.reward_pts}
+                     onChange={(e) => setEditData({...editData, reward_pts: parseInt(e.target.value) || 0})}
+                     className="h-8 py-0.5 text-sm font-bold text-amber-500 bg-background/50 border-amber-500/20 w-24 mt-0.5"
+                   />
+                 ) : (
+                   <p className="text-sm font-bold text-amber-500">
+                     {assignment.reward_pts} Points
+                   </p>
+                 )}
                </div>
              </div>
           </div>
@@ -103,14 +178,23 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
               <Info className="w-4 h-4 text-primary" /> 作业详情内容
             </h4>
-            <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 text-base leading-relaxed text-foreground/80 whitespace-pre-wrap min-h-[120px]">
-              {assignment.description || "暂无具体详情描述。"}
-            </div>
+            {isEditing ? (
+              <Textarea 
+                value={editData.description}
+                onChange={(e) => setEditData({...editData, description: e.target.value})}
+                className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30"
+                placeholder="详细描述作业内容、要求或备注..."
+              />
+            ) : (
+              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 text-base leading-relaxed text-foreground/80 whitespace-pre-wrap min-h-[120px]">
+                {assignment.description || "暂无具体详情描述。"}
+              </div>
+            )}
           </div>
 
           {/* 附件资料下载区 */}
-          {!!assignment.attachments?.length && (
-            <div className="space-y-3">
+          {!isEditing && !!assignment.attachments?.length && (
+            <div className="space-y-3 pb-2">
               <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
                 <Paperclip className="w-4 h-4 text-primary" /> 关联学习资料 ({assignment.attachments.length})
               </h4>
@@ -135,37 +219,59 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             </div>
           )}
           
-          <div className="pt-2 text-[10px] text-center text-muted-foreground/40 font-medium italic">
-            记得在完成后回来打钩，领取你的积分奖牌！
-          </div>
+          {!isEditing && (
+            <div className="pt-2 text-[10px] text-center text-muted-foreground/40 font-medium italic">
+              记得在完成后回来打钩，领取你的积分奖牌！
+            </div>
+          )}
         </div>
 
         {/* 底部操作固定栏 */}
-        <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-3">
-          <Button 
-            disabled={loading}
-            onClick={handleToggleStatus}
-            className={cn(
-              "w-full max-w-sm h-12 rounded-2xl font-bold text-base transition-all active:scale-95 shadow-lg",
-              isCompleted 
-                ? "bg-slate-200 text-slate-500 hover:bg-slate-300 shadow-none border border-slate-300" 
-                : "bg-primary text-primary-foreground hover:shadow-primary/25"
-            )}
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : isCompleted ? (
-              <>
-                <RotateCcw className="w-5 h-5 mr-2" />
-                撤回并标记为进行中
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                确认作业已完成
-              </>
-            )}
-          </Button>
+        <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4">
+          {isEditing ? (
+            <>
+              <Button 
+                variant="outline"
+                className="flex-1 h-12 rounded-2xl font-bold border-2"
+                onClick={() => setIsEditing(false)}
+                disabled={loading}
+              >
+                取消修改
+              </Button>
+              <Button 
+                className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25"
+                onClick={handleSaveEdit}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存变更内容</>}
+              </Button>
+            </>
+          ) : (
+            <Button 
+              disabled={loading}
+              onClick={handleToggleStatus}
+              className={cn(
+                "w-full max-w-sm h-12 rounded-2xl font-bold text-base transition-all active:scale-95 shadow-lg",
+                isCompleted 
+                  ? "bg-slate-200 text-slate-500 hover:bg-slate-300 shadow-none border border-slate-300" 
+                  : "bg-primary text-primary-foreground hover:shadow-primary/25"
+              )}
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isCompleted ? (
+                <>
+                  <RotateCcw className="w-5 h-5 mr-2" />
+                  撤回并标记为进行中
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5 mr-2" />
+                  确认作业已完成
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
