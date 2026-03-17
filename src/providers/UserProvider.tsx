@@ -83,7 +83,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return
       if (event === 'INITIAL_SESSION') return
 
@@ -91,15 +91,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser)
 
       if (currentUser) {
-        const { data } = await supabase
+        // 关键修复：使用非阻塞模式（fire-and-forget）刷新 Profile。
+        // 不要 await，否则会阻塞 updateUser/signIn 等 Auth API 的返回。
+        void supabase
           .from('profiles')
           .select('*')
           .eq('user_id', currentUser.id)
           .maybeSingle()
-
-        if (mounted && data) {
-          setProfile(data)
-        }
+          .then(({ data }) => {
+            if (mounted && data) setProfile(data)
+          })
       } else {
         setProfile(null)
       }
