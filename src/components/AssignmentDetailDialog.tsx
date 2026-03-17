@@ -18,6 +18,41 @@ import dynamic from "next/dynamic"
 import { ImageZoom } from "./ImageZoom"
 import { useUser } from "@/hooks/useUser"
 
+// 待上传图片的实时预览组件
+function PendingFilePreview({ file, onRemove, colorClass = "primary" }: { file: File, onRemove: () => void, colorClass?: string }) {
+  const [url, setUrl] = useState<string>("");
+  
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  const isImg = file.type.startsWith('image/');
+
+  return (
+    <div className="relative group animate-in zoom-in-50">
+      <div className={cn(
+        "w-16 h-16 rounded-xl border-2 border-dashed overflow-hidden flex items-center justify-center bg-background/50",
+        colorClass === "primary" ? "border-primary/40" : "border-indigo-500/40"
+      )}>
+        {isImg && url ? (
+          <img src={url} className="w-full h-full object-cover opacity-60 grayscale-[0.3]" alt="Preview" />
+        ) : (
+          <Upload className={cn("w-4 h-4 opacity-40", colorClass === "primary" ? "text-primary" : "text-indigo-500")} />
+        )}
+      </div>
+      <button 
+        onClick={onRemove} 
+        className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform"
+        title="移除"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
 const MarkdownEditor = dynamic(
   () => import("./MarkdownEditor").then((mod) => mod.MarkdownEditor),
   { 
@@ -290,12 +325,12 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                     {pendingMaterialFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {pendingMaterialFiles.map((f, i) => (
-                                <div key={i} className="relative group animate-in zoom-in-50">
-                                    <div className="w-16 h-16 rounded-xl border-2 border-dashed border-primary/40 overflow-hidden flex items-center justify-center bg-primary/5 italic text-[8px] text-primary/40 p-1 text-center">
-                                        {f.name}
-                                    </div>
-                                    <button onClick={() => setPendingMaterialFiles(pendingMaterialFiles.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg"><X className="w-3 h-3" /></button>
-                                </div>
+                                <PendingFilePreview 
+                                    key={i} 
+                                    file={f} 
+                                    onRemove={() => setPendingMaterialFiles(pendingMaterialFiles.filter((_, idx) => idx !== i))} 
+                                    colorClass="primary"
+                                />
                             ))}
                         </div>
                     )}
@@ -378,12 +413,12 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                             {submissionFiles.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
                                     {submissionFiles.map((f, i) => (
-                                        <div key={i} className="relative group animate-in zoom-in-50">
-                                            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-indigo-500/40 overflow-hidden flex items-center justify-center bg-indigo-500/5">
-                                                <Upload className="w-4 h-4 text-indigo-500/40" />
-                                            </div>
-                                            <button onClick={() => setSubmissionFiles(submissionFiles.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg"><X className="w-3 h-3" /></button>
-                                        </div>
+                                        <PendingFilePreview 
+                                            key={i} 
+                                            file={f} 
+                                            onRemove={() => setSubmissionFiles(submissionFiles.filter((_, idx) => idx !== i))} 
+                                            colorClass="indigo"
+                                        />
                                     ))}
                                 </div>
                             )}

@@ -175,7 +175,10 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
 
     const { error: uploadError } = await supabase.storage
       .from('attachments')
-      .upload(filePath, uploadData);
+      .upload(filePath, uploadData, {
+        contentType: uploadData.type,
+        upsert: true
+      });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
@@ -189,7 +192,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     const { error: dbError } = await supabase.from('attachments').insert({
       assignment_id: assignmentId,
       file_name: file.name,
-      file_type: file.type || 'unknown',
+      file_type: uploadData.type || 'unknown',
       file_url: publicUrl,
       purpose: purpose
     });
