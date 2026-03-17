@@ -225,7 +225,7 @@ export default function AuthPage() {
                     ) : (
                       <>
                         <LogIn className="mr-2 h-5 w-5" />
-                        开启学习魔法 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        登录 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </div>

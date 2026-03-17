@@ -42,6 +42,7 @@ export default function ProfilePage() {
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
 
   const handleLogout = async () => {
+    localStorage.removeItem('donedesk_student_id')
     await supabase.auth.signOut()
     window.location.href = "/"
   }

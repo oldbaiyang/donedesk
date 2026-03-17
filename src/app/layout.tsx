@@ -41,7 +41,7 @@ export default function RootLayout({
 }
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useUser();
+  const { user, profile, loading } = useUser();
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
+  if (!user && !profile) {
     return <AuthPage />;
   }
 
