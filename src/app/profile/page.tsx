@@ -431,7 +431,7 @@ function FamilySection() {
     <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative min-h-[300px]">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-accent/10 text-accent">
+          <div className="p-3 rounded-2xl bg-primary/10 text-primary">
             <Users className="h-6 w-6" />
           </div>
           <h3 className="text-xl font-black text-foreground">家庭成员</h3>
@@ -439,7 +439,7 @@ function FamilySection() {
         {profile?.role === 'parent' && !isAdding && (
           <Button 
             onClick={() => setIsAdding(true)}
-            className="rounded-xl font-bold bg-accent text-white hover:bg-accent/90 shadow-md shadow-accent/20 transition-all hover:scale-[1.02] active:scale-95"
+            className="rounded-xl font-bold bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
           >
             <Plus className="mr-1 h-4 w-4" /> 添加学生
           </Button>
@@ -448,14 +448,14 @@ function FamilySection() {
 
       <div className="space-y-4">
         {isAdding && (
-          <div className="p-4 rounded-3xl bg-accent/5 border border-accent/10 animate-in slide-in-from-top-2 duration-300">
+          <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 animate-in slide-in-from-top-2 duration-300">
             <div className="flex flex-col gap-3">
-              <label className="text-[10px] font-black text-accent uppercase ml-1">学生姓名</label>
+              <label className="text-[10px] font-black text-primary uppercase ml-1">学生姓名</label>
               <div className="flex gap-2">
                 <Input 
                   autoFocus
                   placeholder="输入孩子姓名"
-                  className="h-11 rounded-xl bg-background/60 border-accent/10"
+                  className="h-11 rounded-xl bg-background/60 border-primary/10"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -463,7 +463,7 @@ function FamilySection() {
                 <Button 
                   disabled={loading || !newName.trim()} 
                   onClick={handleAdd}
-                  className="h-11 px-6 rounded-xl bg-accent text-white font-bold"
+                  className="h-11 px-6 rounded-xl bg-primary text-white font-bold"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "确认"}
                 </Button>
