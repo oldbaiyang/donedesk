@@ -205,13 +205,16 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
   };
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
+    // 过滤掉不属于数据库列的字段（如 subject, attachments）
+    const { subject, attachments, ...dbUpdates } = updates as any;
+
     const { error } = await supabase
       .from('assignments')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id);
     
     if (error) {
-      console.error("Error updating assignment:", error);
+      console.error("Error updating assignment (Full):", JSON.stringify(error, null, 2));
     } else {
       await fetchAssignments();
     }
