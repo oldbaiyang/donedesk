@@ -107,9 +107,9 @@ export default function AuthPage() {
               <Button 
                 disabled={loading} 
                 onClick={() => handleAuth('login')}
-                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-primary/20 group relative overflow-hidden active:scale-[0.98] transition-all bg-primary text-white"
+                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-primary/30 group relative overflow-hidden active:scale-[0.98] transition-all bg-gradient-to-r from-indigo-600 via-blue-700 to-primary text-white border-none"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary via-indigo-600 to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="relative flex items-center justify-center">
                   {loading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin text-white" />
@@ -127,9 +127,9 @@ export default function AuthPage() {
               <Button 
                 disabled={loading} 
                 onClick={() => handleAuth('signup')}
-                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-accent/20 group relative overflow-hidden active:scale-[0.98] transition-all bg-accent text-white"
+                className="w-full h-12 rounded-2xl font-bold text-base shadow-xl shadow-accent/30 group relative overflow-hidden active:scale-[0.98] transition-all bg-gradient-to-r from-accent via-purple-700 to-indigo-800 text-white border-none"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-accent via-purple-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="relative flex items-center justify-center">
                   {loading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin text-white" />
