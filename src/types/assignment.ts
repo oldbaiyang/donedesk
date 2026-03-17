@@ -37,5 +37,6 @@ export type Profile = {
   full_name: string | null;
   avatar_url: string | null;
   user_id: string | null;
+  password?: string | null;
   created_at?: string;
 };

@@ -38,6 +38,9 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
+  // 学生详情编辑
+  const [editingStudent, setEditingStudent] = useState<any | null>(null)
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     window.location.href = "/"
@@ -245,7 +248,7 @@ export default function ProfilePage() {
 
         {/* 右侧 */}
         <div className="lg:col-span-2 space-y-6">
-          <FamilySection />
+          <FamilySection onEditStudent={setEditingStudent} />
 
           {/* 密码修改部分 */}
           <PasswordChangeSection />
@@ -264,6 +267,14 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+      
+      {/* 学生详情编辑弹窗 */}
+      {editingStudent && (
+        <StudentEditOverlay 
+          student={editingStudent} 
+          onClose={() => setEditingStudent(null)} 
+        />
+      )}
     </div>
   )
 }
@@ -406,7 +417,7 @@ function PasswordChangeSection() {
   )
 }
 
-function FamilySection() {
+function FamilySection({ onEditStudent }: { onEditStudent: (student: any) => void }) {
   const { profile } = useUser()
   const { profiles, addStudent } = useAssignmentsContext()
   const [isAdding, setIsAdding] = useState(false)
@@ -483,6 +494,7 @@ function FamilySection() {
           {profiles.map((p) => (
             <div 
               key={p.id}
+              onClick={() => p.role === 'student' && profile?.role === 'parent' && onEditStudent(p)}
               className="p-4 rounded-3xl bg-muted/20 border border-border/10 flex items-center gap-4 hover:bg-muted/40 transition-colors group cursor-pointer"
             >
               <img 
@@ -511,5 +523,147 @@ function FamilySection() {
         </div>
       )}
     </Card>
+  )
+}
+
+function StudentEditOverlay({ student, onClose }: { student: any, onClose: () => void }) {
+  const { updateStudent } = useAssignmentsContext()
+  const [name, setName] = useState(student.full_name || "")
+  const [password, setPassword] = useState(student.password || "")
+  const [avatarUrl, setAvatarUrl] = useState(student.avatar_url || "")
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const success = await updateStudent(student.id, {
+        full_name: name,
+        password: password,
+        avatar_url: avatarUrl
+      })
+      if (success) {
+        onClose()
+      }
+    } catch (err) {
+      console.error("Save error:", err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAvatarClick = () => {
+    fileRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const compressedFile = await compressImage(file)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `student-${student.id}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, compressedFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath)
+
+      setAvatarUrl(publicUrl)
+    } catch (err) {
+      console.error("Upload error:", err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+      <Card className="w-full max-w-md p-8 rounded-[2.5rem] bg-card border-border/20 shadow-2xl relative overflow-hidden">
+        <Button 
+          variant="ghost" 
+          onClick={onClose}
+          className="absolute right-6 top-6 h-10 w-10 rounded-full p-0"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+
+        <div className="flex flex-col items-center mb-8">
+          <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+            <div className="h-24 w-24 rounded-[2rem] overflow-hidden border-2 border-primary/20 bg-background shadow-inner relative">
+              <img 
+                src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`} 
+                className="h-full w-full object-cover"
+                alt="Avatar"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Camera className="h-6 w-6 text-white" />}
+              </div>
+            </div>
+            <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+          </div>
+          <h3 className="mt-4 text-xl font-black text-foreground">管理学生账号</h3>
+          <p className="text-sm text-muted-foreground font-medium">设置头像、昵称或修改登录密码</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-primary uppercase ml-1">学生昵称</label>
+            <div className="relative">
+              <Pencil className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例如：小明"
+                className="pl-12 h-12 rounded-2xl bg-muted/30 border-border/10 font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-primary uppercase ml-1">登录密码</label>
+            <div className="relative">
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="设置独立登录密码"
+                className="pl-12 h-12 rounded-2xl bg-muted/30 border-border/10 font-bold"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 ml-1">该密码仅供学生端账号独立登录时使用</p>
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <Button 
+              className="flex-1 h-12 rounded-2xl font-black bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+              onClick={handleSave}
+              disabled={isSaving || isUploading}
+            >
+              {isSaving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Check className="h-5 w-5 mr-2" />}
+              保存资料
+            </Button>
+            <Button 
+              variant="outline"
+              className="px-8 h-12 rounded-2xl font-bold border-border/20"
+              onClick={onClose}
+              disabled={isSaving || isUploading}
+            >
+              取消
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
   )
 }

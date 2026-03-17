@@ -14,6 +14,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   user_id UUID UNIQUE
 );
 
+-- 为 profiles 增加 password 字段支持学生独立登录
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='password') THEN
+    ALTER TABLE public.profiles ADD COLUMN password TEXT;
+  END IF;
+END $$;
+
 -- 2. 学科分类表 subjects
 CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

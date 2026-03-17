@@ -23,6 +23,7 @@ type AssignmentsContextType = {
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File) => Promise<boolean>;
   addStudent: (fullName: string) => Promise<Profile | null>;
+  updateStudent: (id: string, updates: Partial<Profile>) => Promise<boolean>;
 };
 
 const AssignmentsContext = createContext<AssignmentsContextType | undefined>(undefined);
@@ -238,6 +239,23 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return null;
   };
 
+  const updateStudent = async (id: string, updates: Partial<Profile>): Promise<boolean> => {
+    if (profile?.role !== 'parent') return false;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', id);
+    
+    if (!error) {
+      await fetchProfiles();
+      return true;
+    }
+    
+    console.error("Error updating student:", error);
+    return false;
+  };
+
   useEffect(() => {
     if (profile) {
       fetchProfiles();
@@ -269,7 +287,8 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       updateAssignment,
       updateAssignmentStatus,
       uploadAttachment,
-      addStudent
+      addStudent,
+      updateStudent
     }}>
       {children}
     </AssignmentsContext.Provider>
