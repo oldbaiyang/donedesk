@@ -441,7 +441,7 @@ function FamilySection() {
           <Button 
             onClick={() => setIsAdding(true)}
             variant="outline" 
-            className="rounded-xl font-bold border-accent/20 text-accent hover:bg-accent/10"
+            className="rounded-xl font-bold border-accent/40 text-accent hover:bg-accent/10 shadow-sm shadow-accent/5"
           >
             <Plus className="mr-1 h-4 w-4" /> 添加学生
           </Button>
@@ -507,9 +507,9 @@ function FamilySection() {
       
       {profiles.length <= 1 && profile?.role === 'parent' && !isAdding && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center mb-4 text-muted-foreground italic font-black text-2xl">?</div>
-          <p className="text-muted-foreground font-medium mb-2">还没有添加学生账号</p>
-          <p className="text-xs text-muted-foreground/60 max-w-[240px]">添加学生后，您可以为他们分配专属的学习任务和励志积分。</p>
+          <div className="h-16 w-16 rounded-full bg-muted/40 flex items-center justify-center mb-4 text-muted-foreground italic font-black text-2xl">?</div>
+          <p className="text-muted-foreground font-bold mb-2">还没有添加学生账号</p>
+          <p className="text-xs text-muted-foreground font-medium max-w-[240px]">添加学生后，您可以为他们分配专属的学习任务和励志积分。</p>
         </div>
       )}
     </Card>
