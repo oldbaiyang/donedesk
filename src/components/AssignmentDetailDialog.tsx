@@ -4,7 +4,7 @@ import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
-import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X } from "lucide-react"
+import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X, Eye } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -20,6 +20,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
   const { updateAssignmentStatus, updateAssignment } = useAssignments();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [editData, setEditData] = useState<{
     title: string;
     description: string;
@@ -187,21 +188,55 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
              </div>
           </div>
 
-          {/* 作业详情内容区域 */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
-              <Info className="w-4 h-4 text-primary" /> 作业详情内容
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
+                <Info className="w-4 h-4 text-primary" /> 作业详情内容
+              </h4>
+              {isEditing && (
+                <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 shrink-0">
+                  <button 
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
+                      !showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Edit2 className="w-3 h-3" /> 编辑
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setShowPreview(true)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
+                      showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Eye className="w-3 h-3" /> 预览
+                  </button>
+                </div>
+              )}
+            </div>
+
             {isEditing ? (
-              <Textarea 
-                value={editData.description}
-                onChange={(e) => setEditData({...editData, description: e.target.value})}
-                className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30 font-mono"
-                placeholder="支持 Markdown 格式：
+              showPreview ? (
+                <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[150px]">
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
+                    <ReactMarkdown>{editData.description || "暂无预览内容。"}</ReactMarkdown>
+                  </div>
+                </div>
+              ) : (
+                <Textarea 
+                  value={editData.description}
+                  onChange={(e) => setEditData({...editData, description: e.target.value})}
+                  className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30 font-mono"
+                  placeholder="支持 Markdown 格式：
 # 标题
 - 列表项
 **加粗文字**"
-              />
+                />
+              )
             ) : (
               <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[120px]">
                 <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
