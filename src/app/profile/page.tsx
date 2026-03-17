@@ -30,9 +30,15 @@ export default function ProfilePage() {
     window.location.href = "/" // 强制刷新以触发 AuthWrapper
   }
 
-  if (authLoading) return null
+  if (authLoading) return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+    </div>
+  )
 
-  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'default'}`;
+  if (!user) return null // 应该由 AuthWrapper 处理
+
+  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || user.email}`;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -57,19 +63,23 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <h2 className="text-2xl font-black text-foreground mb-1">{profile?.full_name || "未设置姓名"}</h2>
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Badge className="bg-primary text-white border-none px-3 py-1 rounded-lg font-bold">
-                {profile?.role === 'parent' ? "家长管理员" : "学生"}
-              </Badge>
+            <h2 className="text-2xl font-black text-foreground mb-1">{profile?.full_name || "正在同步身份..."}</h2>
+            <div className="flex items-center justify-center gap-2 mb-6 h-8">
+              {profile ? (
+                <Badge className="bg-primary text-white border-none px-3 py-1 rounded-lg font-bold">
+                  {profile.role === 'parent' ? "家长管理员" : "学生子账号"}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="animate-pulse">身份初始化中</Badge>
+              )}
             </div>
 
             <div className="w-full space-y-4 text-left">
               <div className="p-4 rounded-2xl bg-muted/30 border border-border/20 flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
-                <div className="flex flex-col">
+                <div className="flex flex-col truncate">
                   <span className="text-[10px] font-black text-muted-foreground uppercase opacity-60">注册邮箱</span>
-                  <span className="text-sm font-bold text-foreground truncate">{user?.email}</span>
+                  <span className="text-sm font-bold text-foreground truncate">{user.email}</span>
                 </div>
               </div>
               

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { Profile } from "@/types/assignment"
 
@@ -9,21 +9,69 @@ export function useUser() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const fetchProfile = useCallback(async (userId: string) => {
+    setLoading(true)
+    try {
+      // 1. 尝试获取现有 Profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (error) {
+        console.error("Fetch profile error:", error)
+        return
+      }
+
+      if (data) {
+        setProfile(data)
+      } else {
+        // 2. 如果不存在，强制创建一个家长角色 (因为目前只有家长通过 Auth 注册)
+        const { data: userResponse } = await supabase.auth.getUser()
+        const email = userResponse?.user?.email
+        
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            role: 'parent', // 核心修正：强制锁定为 parent
+            full_name: email?.split('@')[0] || '管家'
+          })
+          .select()
+          .single()
+        
+        if (createError) {
+          console.error("Create profile error:", createError)
+        } else {
+          setProfile(newProfile)
+        }
+      }
+    } catch (err) {
+      console.error("Profile sync fatal error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    // 1. 监听 Auth 状态
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 监听 Auth 状态
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        await fetchProfile(session.user.id)
       } else {
         setLoading(false)
       }
-    })
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        await fetchProfile(session.user.id)
       } else {
         setProfile(null)
         setLoading(false)
@@ -31,39 +79,7 @@ export function useUser() {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      if (error && error.code === 'PGRST116') {
-        // Profile 不存在，通常是刚注册的家长，需要自动创建
-        const { data: userData } = await supabase.auth.getUser()
-        if (userData?.user) {
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              user_id: userId,
-              role: 'parent',
-              full_name: userData.user.email?.split('@')[0] || '家长'
-            })
-            .select()
-            .single()
-          
-          if (!createError) setProfile(newProfile)
-        }
-      } else if (!error) {
-        setProfile(data)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [fetchProfile])
 
   return { user, profile, userId: user?.id, loading }
 }
