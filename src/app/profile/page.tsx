@@ -348,7 +348,11 @@ function PasswordChangeSection() {
       
       if (error) {
         console.error("Password update error details:", JSON.stringify(error, null, 2))
-        setMessage(error.message || "更新失败，请稍后重试")
+        let errorMsg = error.message
+        if (error.code === 'same_password') {
+          errorMsg = "新密码不能与当前密码相同"
+        }
+        setMessage(errorMsg || "更新失败，请稍后重试")
         setStatus('error')
       } else {
         console.log("Password updated successfully")

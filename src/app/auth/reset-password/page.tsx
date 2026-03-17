@@ -53,7 +53,11 @@ export default function ResetPasswordPage() {
       
       if (error) {
         console.error("Reset password error details:", JSON.stringify(error, null, 2))
-        setMessage(error.message || "设置失败，请稍后重试")
+        let errorMsg = error.message
+        if (error.code === 'same_password') {
+          errorMsg = "新密码不能与原密码相同"
+        }
+        setMessage(errorMsg || "设置失败，请稍后重试")
         setStatus('error')
       } else {
         console.log("Password reset successfully from recovery link")
