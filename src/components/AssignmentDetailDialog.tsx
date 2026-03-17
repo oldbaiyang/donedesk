@@ -72,16 +72,16 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             if (!val) setIsEditing(false);
         }
     }}>
-      <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[min(90vh,800px)]">
         {/* 顶部彩色装饰条 */}
         {assignment.subject && (
           <div 
-            className="h-1.5 w-full opacity-80" 
+            className="h-1.5 w-full opacity-80 shrink-0" 
             style={{ backgroundColor: assignment.subject.color_code }} 
           />
         )}
         
-        <div className="p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-8 pt-6 space-y-6">
           <DialogHeader className="space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-3 flex-1">
@@ -233,7 +233,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
         </div>
 
         {/* 底部操作固定栏 */}
-        <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4">
+        <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4 shrink-0">
           {isEditing ? (
             <>
               <Button 

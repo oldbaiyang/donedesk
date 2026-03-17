@@ -95,12 +95,14 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">新建作业 / 任务</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-2xl p-0 flex flex-col max-h-[min(90vh,800px)] overflow-hidden">
+        <div className="p-6 pb-0 shrink-0">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">新建作业 / 任务</DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-2 space-y-4">
           <div className="space-y-2">
             <Label>任务标题</Label>
             <Input
