@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { AssignmentsProvider } from "@/providers/AssignmentsProvider";
 import { useUser } from "@/hooks/useUser";
+import { UserProvider } from "@/providers/UserProvider";
 import AuthPage from "./auth/page";
 import "./globals.css";
 
@@ -29,9 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-primary/20 bg-background text-foreground`}
       >
-        <AssignmentsProvider>
-          <AuthWrapper>{children}</AuthWrapper>
-        </AssignmentsProvider>
+        <UserProvider>
+          <AssignmentsProvider>
+            <AuthWrapper>{children}</AuthWrapper>
+          </AssignmentsProvider>
+        </UserProvider>
       </body>
     </html>
   );

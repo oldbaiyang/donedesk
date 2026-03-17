@@ -1,92 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { supabase } from "@/lib/supabase"
-import { Profile } from "@/types/assignment"
+import { useUserContext } from "@/providers/UserProvider"
 
+/**
+ * 身份钩子切换为 Context 消费模式。
+ * 核心逻辑已迁移至 src/providers/UserProvider.tsx，以解决并发 Lock 冲突问题。
+ */
 export function useUser() {
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  
-  const lastUserId = useRef<string | null>(null)
-  const isFetching = useRef(false)
-
-  const fetchProfile = useCallback(async (userId: string, email?: string) => {
-    if (isFetching.current) return
-    
-    isFetching.current = true
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      if (error) {
-        if (!error.message?.includes("Abort")) {
-          console.error("Profile sync error:", error.message)
-        }
-        return
-      }
-
-      if (data) {
-        setProfile(data)
-        lastUserId.current = userId
-      } else if (email) {
-        // 直接使用传入的 Email，不再调用 supabase.auth.getUser() 避免冲突
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: userId,
-            role: 'parent',
-            full_name: email.split('@')[0] || '管家'
-          })
-          .select()
-          .single()
-        
-        if (!createError) {
-          setProfile(newProfile)
-          lastUserId.current = userId
-        }
-      }
-    } catch (err) {
-      console.error("Critical fetch error:", err)
-    } finally {
-      setLoading(false)
-      isFetching.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let mounted = true
-
-    // 监听 Auth 状态
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-      
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      
-      if (currentUser) {
-        // 如果 ID 变了或者是初次加载
-        if (lastUserId.current !== currentUser.id) {
-          await fetchProfile(currentUser.id, currentUser.email)
-        } else {
-          setLoading(false)
-        }
-      } else {
-        setProfile(null)
-        setLoading(false)
-        lastUserId.current = null
-      }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [fetchProfile])
-
-  return { user, profile, userId: user?.id, loading }
+  return useUserContext()
 }
