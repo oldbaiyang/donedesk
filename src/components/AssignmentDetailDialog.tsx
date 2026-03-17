@@ -60,8 +60,13 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  if (!assignment) return null
+
+  const isCompleted = assignment.status === "completed"
+  const dueDate = assignment.due_date ? new Date(assignment.due_date) : null
   const isParent = profile?.role === 'parent';
   const isStudent = profile?.role === 'student';
+  const canEditSubmission = !isCompleted && (isStudent || isParent);
 
   useEffect(() => {
     if (assignment) {
@@ -79,11 +84,6 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
       setSelectedImage(null);
     }
   }, [assignment]);
-
-  if (!assignment) return null
-
-  const dueDate = assignment.due_date ? new Date(assignment.due_date) : null
-  const isCompleted = assignment.status === "completed"
 
   const isImageFile = (fileName: string) => {
     const images = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
@@ -308,7 +308,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                     <h4 className="text-xs font-bold text-foreground/70 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-indigo-500" /> 学生备注
                     </h4>
-                    {isStudent && !isCompleted ? (
+                    {canEditSubmission ? (
                         <Textarea 
                             value={studentNotes}
                             onChange={(e) => setStudentNotes(e.target.value)}
@@ -340,7 +340,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                     )}
 
                     {/* 学生上传区域 */}
-                    {isStudent && !isCompleted && (
+                    {canEditSubmission && (
                         <div className="space-y-4">
                             {submissionFiles.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
@@ -372,7 +372,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
               <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2" onClick={() => setIsEditing(false)} disabled={loading}>取消修改</Button>
               <Button className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25" onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存任务变更</>}</Button>
             </>
-          ) : isStudent && !isCompleted ? (
+          ) : canEditSubmission ? (
             <Button className="w-full max-w-sm h-14 rounded-2xl font-bold text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/25" onClick={handleStudentSubmit} disabled={loading}>
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> 提交作业并完成任务</>}
             </Button>
