@@ -17,16 +17,24 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- 2. 学科分类表 subjects
 CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  parent_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color_code TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 如果 subjects 表已存在但缺少 parent_id，进行补齐
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subjects' AND column_name='parent_id') THEN
+    ALTER TABLE public.subjects ADD COLUMN parent_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
 -- 3. 核心作业表 assignments
 CREATE TABLE IF NOT EXISTS public.assignments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES public.subjects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
@@ -38,6 +46,14 @@ CREATE TABLE IF NOT EXISTS public.assignments (
   reward_pts INTEGER DEFAULT 10,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 如果 assignments 表已存在但缺少 student_id，进行补齐
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assignments' AND column_name='student_id') THEN
+    ALTER TABLE public.assignments ADD COLUMN student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- 3. 作业附件/资料表 attachments
 CREATE TABLE IF NOT EXISTS public.attachments (
