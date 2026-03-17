@@ -58,6 +58,10 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
   const [submissionFiles, setSubmissionFiles] = useState<File[]>([]);
   const submissionInputRef = useRef<HTMLInputElement>(null);
 
+  // 家长上传资料的数据
+  const [pendingMaterialFiles, setPendingMaterialFiles] = useState<File[]>([]);
+  const materialInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   if (!assignment) return null
@@ -80,6 +84,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
       });
       setStudentNotes(assignment.student_notes || "");
       setSubmissionFiles([]);
+      setPendingMaterialFiles([]);
       setIsEditing(false);
       setSelectedImage(null);
     }
@@ -102,7 +107,15 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
 
   const handleSaveEdit = async () => {
     setLoading(true);
+    // 1. 更新基本信息
     await updateAssignment(assignment.id, editData);
+    
+    // 2. 上传新资料附件
+    if (pendingMaterialFiles.length > 0) {
+        await Promise.all(pendingMaterialFiles.map(file => uploadAttachment(assignment.id, file, 'material')));
+    }
+    
+    setPendingMaterialFiles([]);
     setIsEditing(false);
     setLoading(false);
   };
@@ -270,8 +283,28 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
               </div>
             )}
 
-            {/* 资料附件 */}
-            {!isEditing && materials.length > 0 && (
+            {/* 资料附件展示与编辑 */}
+            {isEditing ? (
+                <div className="space-y-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 pl-1 flex items-center gap-1"><Paperclip className="w-3 h-3" /> 添加任务资料/要求附件</p>
+                    {pendingMaterialFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {pendingMaterialFiles.map((f, i) => (
+                                <div key={i} className="relative group animate-in zoom-in-50">
+                                    <div className="w-16 h-16 rounded-xl border-2 border-dashed border-primary/40 overflow-hidden flex items-center justify-center bg-primary/5 italic text-[8px] text-primary/40 p-1 text-center">
+                                        {f.name}
+                                    </div>
+                                    <button onClick={() => setPendingMaterialFiles(pendingMaterialFiles.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg"><X className="w-3 h-3" /></button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <input ref={materialInputRef} type="file" multiple className="hidden" onChange={(e) => e.target.files && setPendingMaterialFiles([...pendingMaterialFiles, ...Array.from(e.target.files)])} />
+                    <Button variant="outline" className="w-full border-dashed border-2 border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-2xl h-14 font-bold text-primary" onClick={() => materialInputRef.current?.click()}>
+                        <Upload className="w-5 h-5 mr-2" /> 上传任务补充资料 ({pendingMaterialFiles.length})
+                    </Button>
+                </div>
+            ) : materials.length > 0 ? (
                 <div className="space-y-4">
                     {materialImages.length > 0 && (
                         <div className="grid grid-cols-4 gap-3">
@@ -291,7 +324,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                         ))}
                     </div>
                 </div>
-            )}
+            ) : null}
           </div>
 
           <div className="h-px bg-border/40 w-full" />
