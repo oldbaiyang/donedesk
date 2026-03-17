@@ -1,5 +1,6 @@
 "use client"
 
+import React, { useState, useEffect } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
@@ -38,14 +39,31 @@ export default function RootLayout({
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowTimeoutWarning(true);
+        console.warn("Auth initialization is taking longer than expected...");
+      }, 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen flex-col items-center justify-center bg-background gap-4">
         <div className="relative">
           <div className="h-24 w-24 rounded-full border-t-2 border-primary animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center font-black text-primary italic text-xl">D</div>
         </div>
+        {showTimeoutWarning && (
+          <p className="text-xs text-muted-foreground animate-pulse font-medium">
+            网络连接同步中，请稍候...
+          </p>
+        )}
       </div>
     );
   }
