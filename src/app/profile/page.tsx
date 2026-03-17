@@ -20,7 +20,8 @@ import {
   Pencil,
   Check,
   X,
-  Loader2
+  Loader2,
+  Lock as LockIcon
 } from "lucide-react"
 import { compressImage } from "@/lib/image"
 
@@ -291,6 +292,9 @@ export default function ProfilePage() {
             )}
           </Card>
 
+          {/* 密码修改部分 */}
+          <PasswordChangeSection />
+
           <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative overflow-hidden">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -306,5 +310,125 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function PasswordChangeSection() {
+  const [isExpanding, setIsExpanding] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState("")
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setMessage("新密码至少需要 6 个字符")
+      setStatus('error')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage("两次输入的密码不一致")
+      setStatus('error')
+      return
+    }
+
+    setIsUpdating(true)
+    setStatus('idle')
+    setMessage("")
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        setMessage(error.message)
+        setStatus('error')
+      } else {
+        setStatus('success')
+        setMessage("密码修改成功！")
+        setNewPassword("")
+        setConfirmPassword("")
+        setTimeout(() => setIsExpanding(false), 2000)
+      }
+    } catch (err: any) {
+      setMessage("更新失败，请重试")
+      setStatus('error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  return (
+    <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
+            <LockIcon className="h-6 w-6" />
+          </div>
+          <h3 className="text-xl font-black text-foreground">安全设置</h3>
+        </div>
+        {!isExpanding && (
+           <Button 
+            variant="outline" 
+            onClick={() => setIsExpanding(true)}
+            className="rounded-xl font-bold border-amber-500/20 text-amber-600 hover:bg-amber-500/10"
+          >
+             修改登录密码
+           </Button>
+        )}
+      </div>
+
+      {!isExpanding ? (
+        <p className="text-sm text-muted-foreground font-medium">您可以随时在此更新您的账户登录密码，确保账户安全。</p>
+      ) : (
+        <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-muted-foreground uppercase ml-1">新密码</label>
+              <Input 
+                type="password"
+                placeholder="至少 6 位密码"
+                className="h-12 rounded-xl bg-muted/30 border-border/10"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-muted-foreground uppercase ml-1">确认新密码</label>
+              <Input 
+                type="password"
+                placeholder="重复输入新密码"
+                className="h-12 rounded-xl bg-muted/30 border-border/10"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {message && (
+            <div className={`p-4 rounded-xl text-[11px] font-bold ${
+              status === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-600'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button 
+              disabled={isUpdating}
+              onClick={handleUpdatePassword}
+              className="flex-1 h-12 rounded-xl font-bold bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
+            >
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : "立即更新密码"}
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => { setIsExpanding(false); setStatus('idle'); setMessage(""); }}
+              className="px-6 h-12 rounded-xl text-muted-foreground"
+            >
+              取消
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }
