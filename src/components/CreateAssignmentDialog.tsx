@@ -187,8 +187,11 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
           <div className="space-y-2">
             <Label>作业详情</Label>
             <Textarea
-              placeholder="输入作业具体要求，如：完成练习册第12页所有习题"
-              className="min-h-[120px] resize-none"
+              placeholder="支持 Markdown 格式，例如：
+# 核心要求
+- 完成习题 1-5
+- 复习第三章 **重点内容**"
+              className="min-h-[120px] resize-none font-mono"
               value={desc}
               onChange={e => setDesc(e.target.value)}
             />

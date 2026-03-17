@@ -8,6 +8,7 @@ import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
+import ReactMarkdown from "react-markdown"
 
 type Props = {
   assignment: Assignment | null
@@ -182,12 +183,17 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
               <Textarea 
                 value={editData.description}
                 onChange={(e) => setEditData({...editData, description: e.target.value})}
-                className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30"
-                placeholder="详细描述作业内容、要求或备注..."
+                className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30 font-mono"
+                placeholder="支持 Markdown 格式：
+# 标题
+- 列表项
+**加粗文字**"
               />
             ) : (
-              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 text-base leading-relaxed text-foreground/80 whitespace-pre-wrap min-h-[120px]">
-                {assignment.description || "暂无具体详情描述。"}
+              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[120px]">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
+                  <ReactMarkdown>{assignment.description || "暂无具体详情描述。"}</ReactMarkdown>
+                </div>
               </div>
             )}
           </div>
