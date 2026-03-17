@@ -128,9 +128,9 @@ export default function ProfilePage() {
     </div>
   )
 
-  if (!user) return null
+  if (!user && !profile) return null
 
-  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || user.email}`;
+  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || user?.email || 'default'}`;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -220,8 +220,8 @@ export default function ProfilePage() {
               <div className="p-4 rounded-2xl bg-muted/30 border border-border/20 flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div className="flex flex-col truncate">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase opacity-60">注册邮箱</span>
-                  <span className="text-sm font-bold text-foreground truncate">{user.email}</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase opacity-60">{user ? "注册邮箱" : "登录方式"}</span>
+                  <span className="text-sm font-bold text-foreground truncate">{user?.email || "昵称登录"}</span>
                 </div>
               </div>
               
