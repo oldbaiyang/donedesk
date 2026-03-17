@@ -64,10 +64,19 @@ ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
 
 -- 极简策略：允许所有操作（正式环境请改为基于 auth.uid() 的 parent_id/student_id 校验）
+DROP POLICY IF EXISTS "Public full access" ON public.profiles;
 CREATE POLICY "Public full access" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access" ON public.subjects;
 CREATE POLICY "Public full access" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access" ON public.assignments;
 CREATE POLICY "Public full access" ON public.assignments FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access" ON public.attachments;
 CREATE POLICY "Public full access" ON public.attachments FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access" ON public.wishlist;
 CREATE POLICY "Public full access" ON public.wishlist FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. 初始化 Storage Bucket 用于存储上传的附件
@@ -76,6 +85,11 @@ VALUES ('attachments', 'attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage RLS 策略（开发用，允许任何人增删改查该桶内文件）
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING ( bucket_id = 'attachments' );
+
+DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
 CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'attachments' );
+
+DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
 CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING ( bucket_id = 'attachments' );
