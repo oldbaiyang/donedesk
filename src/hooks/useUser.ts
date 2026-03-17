@@ -20,7 +20,12 @@ export function useUser() {
         .maybeSingle()
 
       if (error) {
-        console.error("Fetch profile error:", error)
+        console.error("Fetch profile error details:", {
+          message: error.message,
+          code: error.code,
+          hint: error.hint,
+          details: error.details
+        })
         return
       }
 
