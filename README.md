@@ -1,53 +1,29 @@
-# DoneDesk - 高屏效学生任务与奖励管理系统
+# DoneDesk (最强学生作业管理系统)
 
-DoneDesk 是一款专为学生设计的、具有现代感视觉体验的任务追踪与激励系统。它通过“任务-积分-奖励”的闭环逻辑，帮助用户高效管理日常学习任务并建立正向反馈。
+DoneDesk 是一款专为学生设计的、具有“拟态玻璃感”视觉风格的结构化作业管理工具。它通过建立学科依赖、积分激励及 Obsidian 式的 Markdown 联动，解决任务零散与资料丢失的问题。
 
----
-
-## ✨ 核心功能
-
-- **🚀 智能化工作台**：支持学科分类、截止日期追踪、任务优先级管理。
-- **🍱 拟态视觉详情**：基于 Glassmorphism (毛玻璃拟态) 设计的任务详情弹出层，支持多附件极速下载。
-- **💎 激励系统**：完成任务赚取积分，兑换自定义愿望单奖励。
-- **📊 数据可视化**：自动统计任务完成率与积分增长曲线。
-- **☁️ 云端同步**：基于 Supabase 实现的多端实时同步与附件存储。
+## 🚀 核心功能
+- **拟态工作台**：基于 Next.js 15 和现代 CSS，提供极致的毛玻璃悬浮交互体验。
+- **Obsidian 融合编辑器**：采用 Tiptap V2，实现编辑与预览合一的 Markdown 录入体验。
+- **智能详情渲染**：
+  - **图片横排与灯箱**：支持 `![]()` 图片横向排列并可通过点击放大（ImageZoom）。
+  - **卡片智能预览**：列表页卡片能自动识别详情图片并渲染为精致缩略图。
+  - **自动链接与换行**：支持 URL 自动识别、新标签页跳转及硬换行。
+- **学科与积分激励**：任务关联学科及分值，提供及时的完成反馈。
+- **Supabase 数据驱动**：实时同步任务状态，确保多端数据一致。
 
 ## 🛠️ 技术栈
+- **Frontend**: Next.js 16 (Turbopack), React 19, TailwindCSS 4
+- **Editor**: Tiptap V2, tiptap-markdown
+- **Markdown**: react-markdown, remark-gfm, remark-breaks
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **UI Components**: @base-ui/react, Lucide React
 
-- **框架**：[Next.js 15 (App Router)](https://nextjs.org/)
-- **后端/数据库**：[Supabase](https://supabase.com/) (PostgreSQL + Storage + Auth)
-- **UI 组件库**：[Base UI](https://base-ui.com/) + [Shadcn UI](https://ui.shadcn.com/)
-- **样式**：Tailwind CSS (自定义拟态设计语言)
-- **图标**：Lucide React
-
-## 🏁 快速启动
-
-### 1. 克隆并安装依赖
+## 📖 快速上手
 ```bash
 npm install
-```
-
-### 2. 环境配置
-在根目录创建 `.env.local` 文件，配置你的 Supabase 凭证：
-```env
-NEXT_PUBLIC_SUPABASE_URL=你的URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=你的KEY
-```
-
-### 3. 运行开发服务器
-```bash
 npm run dev
 ```
 
-## 📂 项目结构
-
-- `/src/app`: 定义路由与核心页面逻辑。
-- `/src/components`: 业务组件与底层 UI 原子组件 (基于 Shadcn)。
-- `/src/hooks`: 核心业务逻辑 Hooks (`useAssignments`, `useRewards`)。
-- `/src/lib`: Supabase 客户端配置。
-- `/supabase`: 数据库初始化脚本与 Schema 定义。
-
 ---
-
-更多技术实现细节请参考 [ARCHITECTURE.md](./ARCHITECTURE.md)。
-
+详细方案请参考 [ARCHITECTURE.md](./ARCHITECTURE.md)

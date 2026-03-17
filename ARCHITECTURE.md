@@ -1,62 +1,32 @@
-# DoneDesk 系统架构说明文档
+# 技术架构与开发指南 (ARCHITECTURE.md)
 
-本文档旨在为开发人员提供 DoneDesk 的核心技术架构、数据流转逻辑及设计规范的深度解读。
+本文档记录了 DoneDesk 的核心技术决策与实现细节，供后续迭代参考。
 
----
+## 1. 编辑器架构: Live Preview Fusion
+项目弃用了传统的分栏预览，采用了基于 **Tiptap V2** 的融合编辑方案。
+- **配置要点**：
+  - 使用 `tiptap-markdown` 进行 Markdown 数据同步。
+  - 针对 Turbopack 兼容性，编辑器组件必须通过 `next/dynamic(..., { ssr: false })` 加载。
+  - **避坑指南**：Tiptap 会对 Markdown 关键字进行转义（如 `!\[\]`）。渲染端需使用预处理函数 `cleanMarkdown` 剥离转义反斜杠，否则图片无法渲染。
 
-## 🏗️ 核心架构
+## 2. 渲染引擎与交互
+详情页渲染采用 `react-markdown` v10：
+- **插件组合**：`remark-gfm` (链接识别), `remark-breaks` (同步换行)。
+- **布局补丁**：将 `p` 标签覆写为 `div` 渲染，以支持在段落内嵌入 `Dialog` (用于图片放大) 而不产生 HTML 嵌套报错。
+- **图片规格**：
+  - 详情页：`200x200` 规格，`inline-block` 布局。
+  - 卡片预览：正则提取 Markdown 中的图片 URL，仅在无文本时渲染缩略图。
 
-DoneDesk 采用典型的 **前端驱动 + Serverless 后端** 架构：
+## 3. 数据库结构 (Supabase)
+目前 `assignments` 表核心字段：
+- `start_date` (timestamp): 任务起始时间（新增字段）。
+- `due_date` (timestamp): 截止时间。
+- `description` (text): 存储 Tiptap 产出的 Markdown 字符串。
+- `reward_pts` (integer): 任务分值。
 
-### 1. 技术栈选型
-- **Next.js 15 (App Router)**: 提供高性能的端到端路由与渲染。
-- **Supabase**: 集成了 PostgreSQL (数据库)、Storage (附件存储) 与 Auth (身份认证)。
-- **Hook-based Logic**: 业务逻辑高度封装于自定义 Hooks 中，实现 UI 与逻辑的彻底解耦。
+## 4. 水合安全性 (Hydration)
+由于浏览器扩展或开发工具可能注入 `style` 属性，全局 `html` 标签必须包含 `suppressHydrationWarning`，以防止 React 水合失败。
 
----
-
-## 🧬 数据流转与业务逻辑
-
-项目核心逻辑主要由两个领域 Hook 承载：
-
-### `useAssignments.ts` (任务领域)
-- **状态维护**：维护 `assignments` 列表、`subjects` 列表。
-- **核心能力**：
-  - `addAssignment`: 事务化处理任务创建、附件上传与记录关联。
-  - `toggleStatus`: 处理任务完成状态切换，并实时同步至 Supabase。
-  - `uploadAttachment`: 封装了 Supabase Storage 的分块上传逻辑。
-
-### `useRewards.ts` (奖励领域)
-- **积分计算**：基于任务完成情况实时聚合当前用户的可用积分。
-- **兑换流**：确保积分扣减与兑换历史记录的原子性操作。
-
----
-
-## 🎨 UI 设计规范与交互特征
-
-### 1. 拟态视觉 (Glassmorphism)
-项目大量使用 `backdrop-blur-3xl` 与半透明 `bg-card/95`。
-- **规范**：所有弹窗组件需保持视觉一致性，背景色统一采用 `bg-card/x` 系列 Token。
-
-### 2. 关键交互修复 (Caveats)
-- **事件冒泡阻断**：由于 `AssignmentDetailDialog` 曾嵌套在 `AssignmentCard` 中，导致点击关闭按钮时冒泡触发了 Card 的开启逻辑。
-  - **解决方案**：目前在 `AssignmentCard.tsx` 中，使用 Fragment 将弹窗与卡片平级排列，从物理层面上切断合成事件的冒泡路径。
-
----
-
-## 💾 数据库 Schema 概览
-
-| 表名 | 描述 | 核心字段 |
-| :--- | :--- | :--- |
-| `profiles` | 用户扩展信息 | `id`, `user_name`, `total_points` |
-| `subjects` | 学科分类 | `id`, `name`, `color_code` |
-| `assignments` | 任务主表 | `id`, `title`, `description`, `reward_pts`, `status` |
-| `attachments` | 任务附件 | `id`, `assignment_id`, `file_url`, `file_name` |
-| `redeem_history` | 奖励兑换记录 | `id`, `reward_name`, `points_spent` |
-
----
-
-## 🛠️ 后续开发建议
-
-1. **缓存策略**：目前采用全量客户端拉取，随着任务量增大，建议引入 `React Query` 进行分段缓存管理。
-2. **性能优化**：弹窗组件目前已实现按需加载，后期可进一步优化附件预览的加载优先级。
+## 5. 后续开发建议
+- **图片上传**：目前图片渲染依赖外部 URL，后续应集成 Supabase Storage 实现直接拖拽上传至 Tiptap。
+- **移动端适配**：需针对 `200x200` 的横排图片在窄屏下的折行行为进行进一步媒体查询优化。
