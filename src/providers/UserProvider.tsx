@@ -9,6 +9,7 @@ type UserContextType = {
   profile: Profile | null
   userId: string | undefined
   loading: boolean
+  refreshProfile: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType>({
@@ -16,6 +17,7 @@ const UserContext = createContext<UserContextType>({
   profile: null,
   userId: undefined,
   loading: true,
+  refreshProfile: async () => {},
 })
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
@@ -23,12 +25,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (data) setProfile(data)
+  }, [user?.id])
+
   useEffect(() => {
     let mounted = true
 
     const init = async () => {
       try {
-        // 1. 先同步获取当前 session (本地存储读取，不触发网络请求)
         const { data: { session } } = await supabase.auth.getSession()
         
         if (!mounted) return
@@ -37,7 +48,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          // 2. 获取或创建 Profile
           const { data: existingProfile } = await supabase
             .from('profiles')
             .select('*')
@@ -49,7 +59,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           if (existingProfile) {
             setProfile(existingProfile)
           } else {
-            // 自动创建家长 Profile
             const { data: newProfile } = await supabase
               .from('profiles')
               .insert({
@@ -74,11 +83,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     init()
 
-    // 3. 监听后续的登录/登出变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
-      
-      // 只处理实际的状态变化事件，不处理 INITIAL_SESSION (已在 init 中处理)
       if (event === 'INITIAL_SESSION') return
 
       const currentUser = session?.user ?? null
@@ -106,7 +112,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <UserContext.Provider value={{ user, profile, userId: user?.id, loading }}>
+    <UserContext.Provider value={{ user, profile, userId: user?.id, loading, refreshProfile }}>
       {children}
     </UserContext.Provider>
   )

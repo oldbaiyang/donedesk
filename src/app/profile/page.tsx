@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useUser } from "@/hooks/useUser"
 import { useAssignmentsContext } from "@/providers/AssignmentsProvider"
 import { supabase } from "@/lib/supabase"
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { 
-  User, 
   Mail, 
   ShieldCheck, 
   LogOut, 
@@ -17,17 +16,101 @@ import {
   Plus, 
   Calendar,
   ChevronRight,
-  Camera
+  Camera,
+  Pencil,
+  Check,
+  X,
+  Loader2
 } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, profile, loading: authLoading } = useUser()
+  const { user, profile, loading: authLoading, refreshProfile } = useUser()
   const { profiles } = useAssignmentsContext()
-  const [isUpdating, setIsUpdating] = useState(false)
+  
+  // 昵称编辑
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editName, setEditName] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // 头像上传
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    window.location.href = "/" // 强制刷新以触发 AuthWrapper
+    window.location.href = "/"
+  }
+
+  const startEditName = () => {
+    setEditName(profile?.full_name || "")
+    setIsEditingName(true)
+  }
+
+  const cancelEditName = () => {
+    setIsEditingName(false)
+    setEditName("")
+  }
+
+  const saveName = async () => {
+    if (!profile?.id || !editName.trim()) return
+    setIsSaving(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: editName.trim() })
+        .eq('id', profile.id)
+      
+      if (!error) {
+        await refreshProfile()
+        setIsEditingName(false)
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !profile?.id || !user?.id) return
+
+    setIsUploadingAvatar(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`
+
+      // 上传到 Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        console.error("Avatar upload error:", uploadError)
+        return
+      }
+
+      // 获取公开 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath)
+
+      // 更新 Profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+
+      if (!updateError) {
+        await refreshProfile()
+      }
+    } finally {
+      setIsUploadingAvatar(false)
+      // 重置 input 以允许重复选择同一文件
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
 
   if (authLoading) return (
@@ -36,13 +119,21 @@ export default function ProfilePage() {
     </div>
   )
 
-  if (!user) return null // 应该由 AuthWrapper 处理
+  if (!user) return null
 
   const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || user.email}`;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* 头部标题区 */}
+      {/* 隐藏的文件选择器 */}
+      <input 
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarUpload}
+      />
+
       <div className="flex flex-col gap-2">
         <h1 className="text-4xl font-black tracking-tight text-foreground">账户中心</h1>
         <p className="text-muted-foreground font-medium">管理您的身份设置与家庭成员</p>
@@ -54,16 +145,58 @@ export default function ProfilePage() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col items-center text-center">
+            {/* 头像区域 */}
             <div className="relative mb-6">
               <div className="h-32 w-32 rounded-3xl overflow-hidden border-4 border-background shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500 bg-muted">
-                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                {isUploadingAvatar ? (
+                  <div className="h-full w-full flex items-center justify-center bg-muted">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                )}
               </div>
-              <button className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/40 hover:scale-110 active:scale-95 transition-all">
+              <button 
+                onClick={handleAvatarClick}
+                disabled={isUploadingAvatar}
+                className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/40 hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
+              >
                 <Camera className="h-4 w-4" />
               </button>
             </div>
 
-            <h2 className="text-2xl font-black text-foreground mb-1">{profile?.full_name || "正在同步身份..."}</h2>
+            {/* 昵称编辑区 */}
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mb-1 w-full max-w-[220px]">
+                <Input 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="text-center font-black text-lg h-10 rounded-xl"
+                  placeholder="输入昵称"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && saveName()}
+                />
+                <button 
+                  onClick={saveName} 
+                  disabled={isSaving}
+                  className="p-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shrink-0"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                </button>
+                <button 
+                  onClick={cancelEditName} 
+                  className="p-2 rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 transition-colors shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1 cursor-pointer group/name" onClick={startEditName}>
+                <h2 className="text-2xl font-black text-foreground">{profile?.full_name || "点击设置昵称"}</h2>
+                <Pencil className="h-4 w-4 text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity" />
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-2 mb-6 h-8">
               {profile ? (
                 <Badge className="bg-primary text-white border-none px-3 py-1 rounded-lg font-bold">
@@ -105,7 +238,7 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* 右侧：家庭成员管理 (针对家长) */}
+        {/* 右侧 */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="p-8 rounded-[2.5rem] bg-background/40 backdrop-blur-2xl border-primary/10 shadow-xl relative min-h-[300px]">
             <div className="flex items-center justify-between mb-8">
