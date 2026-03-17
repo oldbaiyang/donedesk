@@ -9,15 +9,17 @@ export function useUser() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // 使用 Ref 记录当前正在处理的 UserId，防止重复请求和竞态冲突
-  const processingUserId = useRef<string | null>(null)
+  // 记录上一次成功处理的 UserId，避免状态震荡
+  const lastUserId = useRef<string | null>(null)
+  const isFetching = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
-    // 如果已经在处理该用户且已有 profile，则跳过
-    if (processingUserId.current === userId) return
-    processingUserId.current = userId
+    // 如果已经有 profile 且 ID 没变，或者是正在请求中，则跳过
+    if ((lastUserId.current === userId && profile) || isFetching.current) return
     
+    isFetching.current = true
     setLoading(true)
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -26,20 +28,20 @@ export function useUser() {
         .maybeSingle()
 
       if (error) {
-        // 忽略中止请求的报错
-        if (error.message?.includes("Abort")) {
-          return
+        // 彻底静默处理终止请求相关的报错，不再打印
+        if (!error.message?.includes("Abort")) {
+          console.error("Profile sync error:", error.message)
         }
-        console.error("Fetch profile error details (Stringified):", JSON.stringify(error, null, 2))
         return
       }
 
       if (data) {
         setProfile(data)
+        lastUserId.current = userId
       } else {
-        // 创建新 Profile (仅限家长)
+        // 自动创建逻辑
         const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (authUser) {
+        if (authUser?.id === userId) {
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
@@ -52,38 +54,23 @@ export function useUser() {
           
           if (!createError) {
             setProfile(newProfile)
+            lastUserId.current = userId
           }
         }
       }
     } catch (err) {
-      console.error("Profile sync fatal error:", err)
+      // 捕获所有潜在的同步异常
     } finally {
       setLoading(false)
-      // 处理完成后清空 Ref，允许下一次可能的显式刷新进度，但由于 profile 已设置，逻辑会闭环
+      isFetching.current = false
     }
-  }, []) // 关键：移除 profile 依赖，彻底解开死循环
+  }, [profile])
 
   useEffect(() => {
     let mounted = true
 
-    const syncUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!mounted) return
-      
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      
-      if (currentUser) {
-        await fetchProfile(currentUser.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-        processingUserId.current = null
-      }
-    }
-
-    syncUser()
-
+    // 💡 核心修复：仅依靠 onAuthStateChange 处理。
+    // Supabase 会在订阅时立即触发一次 INITIAL_SESSION 事件。
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
       
@@ -95,7 +82,7 @@ export function useUser() {
       } else {
         setProfile(null)
         setLoading(false)
-        processingUserId.current = null
+        lastUserId.current = null
       }
     })
 
