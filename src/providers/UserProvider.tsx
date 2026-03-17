@@ -41,12 +41,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        const studentId = localStorage.getItem('donedesk_student_id')
         
         if (!mounted) return
         
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
+        // 优先加载正式登录用户 (家长)
         if (currentUser) {
           const { data: existingProfile } = await supabase
             .from('profiles')
@@ -59,6 +61,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           if (existingProfile) {
             setProfile(existingProfile)
           } else {
+            // 建档逻辑保持不变
             const { data: newProfile } = await supabase
               .from('profiles')
               .insert({
@@ -73,6 +76,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               setProfile(newProfile)
             }
           }
+        } 
+        // 其次尝试载入虚拟登录用户 (学生)
+        else if (studentId) {
+          const { data: studentProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', studentId)
+            .maybeSingle()
+          
+          if (mounted && studentProfile) {
+            setProfile(studentProfile)
+          }
         }
       } catch (err) {
         console.error("Auth init error:", err)
@@ -85,14 +100,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return
+      
+      // 处理登出
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+        localStorage.removeItem('donedesk_student_id')
+        return
+      }
+
       if (event === 'INITIAL_SESSION') return
 
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
       if (currentUser) {
-        // 关键修复：使用非阻塞模式（fire-and-forget）刷新 Profile。
-        // 不要 await，否则会阻塞 updateUser/signIn 等 Auth API 的返回。
+        localStorage.removeItem('donedesk_student_id') // 邮箱登录后清除学生标记
         void supabase
           .from('profiles')
           .select('*')
@@ -101,8 +124,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           .then(({ data }) => {
             if (mounted && data) setProfile(data)
           })
-      } else {
-        setProfile(null)
       }
     })
 

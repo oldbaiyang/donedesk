@@ -17,7 +17,7 @@ export default function AuthPage() {
 
   const handleAuth = async (type: 'login' | 'signup') => {
     if (!email || !password) {
-      setMessage({ type: 'error', text: "请填写完整邮箱和密码" })
+      setMessage({ type: 'error', text: "请填写完整账户和密码" })
       return
     }
 
@@ -25,6 +25,34 @@ export default function AuthPage() {
     setMessage(null)
     
     try {
+      // 判断是否为邮箱登录
+      const isEmail = email.includes('@')
+
+      if (type === 'login' && !isEmail) {
+        // 昵称登录逻辑 (学生)
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, password')
+          .eq('full_name', email.trim())
+          .eq('role', 'student')
+          .maybeSingle()
+
+        if (profileError) throw profileError
+        
+        if (!data || data.password !== password) {
+          setMessage({ type: 'error', text: "昵称或密码错误" })
+          setLoading(false)
+          return
+        }
+
+        // 验证成功，存入本地存储并刷新
+        localStorage.setItem('donedesk_student_id', data.id)
+        localStorage.removeItem('supabase.auth.token') // 确保清理掉之前的 Auth 状态
+        window.location.href = "/"
+        return
+      }
+
+      // 邮箱认证逻辑 (家长)
       const { error } = type === 'login' 
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password })
@@ -33,8 +61,12 @@ export default function AuthPage() {
         setMessage({ type: 'error', text: error.message })
       } else if (type === 'signup') {
         setMessage({ type: 'success', text: "注册指令已发送！请检查邮箱（或直接尝试登录，取决于项目配置）。" })
+      } else {
+        // 登录成功清理学生标记
+        localStorage.removeItem('donedesk_student_id')
       }
     } catch (err: any) {
+      console.error("Auth error:", err)
       setMessage({ type: 'error', text: "连接失败，请检查网络或配置" })
     } finally {
       setLoading(false)
