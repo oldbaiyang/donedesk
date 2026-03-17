@@ -341,9 +341,8 @@ function PasswordChangeSection() {
         </div>
         {!isExpanding && (
            <Button 
-            variant="outline" 
             onClick={() => setIsExpanding(true)}
-            className="rounded-xl font-bold border-amber-500/20 text-amber-600 hover:bg-amber-500/10"
+            className="rounded-xl font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95"
           >
              修改登录密码
            </Button>
@@ -440,8 +439,7 @@ function FamilySection() {
         {profile?.role === 'parent' && !isAdding && (
           <Button 
             onClick={() => setIsAdding(true)}
-            variant="outline" 
-            className="rounded-xl font-bold border-accent/40 text-accent hover:bg-accent/10 shadow-sm shadow-accent/5"
+            className="rounded-xl font-bold bg-accent text-white hover:bg-accent/90 shadow-md shadow-accent/20 transition-all hover:scale-[1.02] active:scale-95"
           >
             <Plus className="mr-1 h-4 w-4" /> 添加学生
           </Button>
