@@ -26,7 +26,6 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false)
   const [isAddingSubject, setIsAddingSubject] = useState(false)
   const [newSubjectName, setNewSubjectName] = useState("")
-  const [showPreview, setShowPreview] = useState(false)
 
   // 同步初始化拉取最新列表
   useEffect(() => {
@@ -248,38 +247,6 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>上传资料附件</Label>
-            <div className="flex flex-col gap-3">
-              <label className="flex items-center justify-center w-full h-11 px-4 transition bg-background border-2 border-dashed rounded-md appearance-none cursor-pointer hover:border-primary/50 focus:outline-none">
-                <span className="flex items-center space-x-2">
-                  <Paperclip className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium text-muted-foreground text-sm">
-                    点击选择 PDF、图片等参考资料
-                  </span>
-                </span>
-                <input type="file" multiple className="hidden" onChange={handleFileChange} />
-              </label>
-              {files.length > 0 && (
-                <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                  {files.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 text-sm bg-muted/50 rounded-md border text-muted-foreground">
-                      <span className="truncate max-w-[280px]">{file.name}</span>
-                      <button type="button" onClick={() => removeFile(idx)} className="text-destructive hover:bg-destructive/10 p-1 rounded-full transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>完成该任务可获得积分</Label>
-            <Input type="number" min="0" value={pts} onChange={e => setPts(e.target.value)} />
           </div>
 
           <Button type="submit" className="w-full mt-6" disabled={loading || !title || !subjectId}>
