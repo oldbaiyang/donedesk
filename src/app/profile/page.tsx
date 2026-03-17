@@ -22,6 +22,7 @@ import {
   X,
   Loader2
 } from "lucide-react"
+import { compressImage } from "@/lib/image"
 
 export default function ProfilePage() {
   const { user, profile, loading: authLoading, refreshProfile } = useUser()
@@ -79,13 +80,16 @@ export default function ProfilePage() {
 
     setIsUploadingAvatar(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`
+      // 压缩图片至 100x100
+      const compressedBlob = await compressImage(file, 100, 100, 0.8)
+      const compressedFile = new File([compressedBlob], `avatar.jpg`, { type: 'image/jpeg' })
+
+      const filePath = `avatars/${user.id}-${Date.now()}.jpg`
 
       // 上传到 Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('attachments')
-        .upload(filePath, file, { upsert: true })
+        .upload(filePath, compressedFile, { upsert: true })
 
       if (uploadError) {
         console.error("Avatar upload error:", uploadError)
