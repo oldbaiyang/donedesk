@@ -42,17 +42,26 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setMessage("")
     
+    // 增加超时控制：10秒必断开
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("请求超时，请检查网络后再试")), 10000)
+    })
+
     try {
-      const { error } = await supabase.auth.updateUser({ password })
+      const updatePromise = supabase.auth.updateUser({ password })
+      const { data, error } = await Promise.race([updatePromise, timeoutPromise]) as any
       
       if (error) {
-        setMessage(error.message)
+        console.error("Reset password error details:", JSON.stringify(error, null, 2))
+        setMessage(error.message || "设置失败，请稍后重试")
         setStatus('error')
       } else {
+        console.log("Password reset successfully from recovery link")
         setStatus('success')
       }
     } catch (err: any) {
-      setMessage("提交失败，请重试")
+      console.error("Critical reset password exception:", err)
+      setMessage(err.message || "设置过程发生异常")
       setStatus('error')
     } finally {
       setLoading(false)

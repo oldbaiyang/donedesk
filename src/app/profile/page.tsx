@@ -336,20 +336,35 @@ function PasswordChangeSection() {
     setIsUpdating(true)
     setStatus('idle')
     setMessage("")
+
+    // 增加超时控制：10秒必断开，防止永恒旋转
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("请求超时，请检查网络后再试")), 10000)
+    })
+
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      const updatePromise = supabase.auth.updateUser({ password: newPassword })
+      const { data, error } = await Promise.race([updatePromise, timeoutPromise]) as any
+      
       if (error) {
-        setMessage(error.message)
+        console.error("Password update error details:", JSON.stringify(error, null, 2))
+        setMessage(error.message || "更新失败，请稍后重试")
         setStatus('error')
       } else {
+        console.log("Password updated successfully")
         setStatus('success')
         setMessage("密码修改成功！")
         setNewPassword("")
         setConfirmPassword("")
-        setTimeout(() => setIsExpanding(false), 2000)
+        setTimeout(() => {
+          setIsExpanding(false)
+          setStatus('idle')
+          setMessage("")
+        }, 2000)
       }
     } catch (err: any) {
-      setMessage("更新失败，请重试")
+      console.error("Critical password update exception:", err)
+      setMessage(err.message || "更新过程发生异常")
       setStatus('error')
     } finally {
       setIsUpdating(false)
