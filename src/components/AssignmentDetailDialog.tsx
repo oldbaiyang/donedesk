@@ -86,7 +86,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             if (!val) setIsEditing(false);
         }
     }}>
-      <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[min(90vh,800px)]">
+      <DialogContent className="sm:max-w-4xl bg-card/95 backdrop-blur-3xl border-primary/20 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[min(90vh,900px)]">
         {/* 顶部彩色装饰条 */}
         {assignment.subject && (
           <div 
@@ -189,54 +189,34 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
-                <Info className="w-4 h-4 text-primary" /> 作业详情内容
-              </h4>
-              {isEditing && (
-                <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 shrink-0">
-                  <button 
-                    type="button"
-                    onClick={() => setShowPreview(false)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
-                      !showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Edit2 className="w-3 h-3" /> 编辑
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setShowPreview(true)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
-                      showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Eye className="w-3 h-3" /> 预览
-                  </button>
-                </div>
-              )}
-            </div>
+            <h4 className="text-sm font-bold flex items-center gap-2 text-foreground/70">
+              <Info className="w-4 h-4 text-primary" /> 作业详情内容 {isEditing && "(Obsidian 实时预览模式)"}
+            </h4>
 
             {isEditing ? (
-              showPreview ? (
-                <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[150px]">
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
-                    <ReactMarkdown>{editData.description || "暂无预览内容。"}</ReactMarkdown>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
+                    <Edit2 className="w-3 h-3" /> 编辑源码
+                  </div>
+                  <Textarea 
+                    value={editData.description}
+                    onChange={(e) => setEditData({...editData, description: e.target.value})}
+                    className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[250px] lg:min-h-[300px] focus-visible:ring-primary/30 font-mono resize-none overflow-y-auto"
+                    placeholder="支持 Markdown 格式..."
+                  />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
+                    <Eye className="w-3 h-3" /> 实时预览效果
+                  </div>
+                  <div className="p-8 rounded-3xl bg-muted/20 border border-border/40 min-h-[250px] lg:min-h-[300px] overflow-y-auto backdrop-blur-sm">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
+                      <ReactMarkdown>{editData.description || "新内容将在此实时排版展示..."}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <Textarea 
-                  value={editData.description}
-                  onChange={(e) => setEditData({...editData, description: e.target.value})}
-                  className="p-6 rounded-3xl bg-background/50 border border-primary/20 text-base leading-relaxed text-foreground/80 min-h-[150px] focus-visible:ring-primary/30 font-mono"
-                  placeholder="支持 Markdown 格式：
-# 标题
-- 列表项
-**加粗文字**"
-                />
-              )
+              </div>
             ) : (
               <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[120px]">
                 <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">

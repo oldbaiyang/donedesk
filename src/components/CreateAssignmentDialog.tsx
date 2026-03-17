@@ -97,141 +97,157 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 flex flex-col max-h-[min(90vh,800px)] overflow-hidden">
+      <DialogContent className="sm:max-w-4xl p-0 flex flex-col max-h-[min(90vh,900px)] overflow-hidden">
         <div className="p-6 pb-0 shrink-0">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">新建作业 / 任务</DialogTitle>
           </DialogHeader>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-2 space-y-4">
-          <div className="space-y-2">
-            <Label>任务标题</Label>
-            <Input
-              placeholder=""
-              required
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>学科</Label>
-            {!isAddingSubject ? (
-              <div className="flex gap-2">
-                <Select value={subjectId} onValueChange={(val) => setSubjectId(val as string)} required>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="点击选择学科">
-                      {subjectId && subjects.find(s => s.id === subjectId) ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ background: subjects.find(s => s.id === subjectId)?.color_code }} />
-                          {subjects.find(s => s.id === subjectId)?.name}
-                        </div>
-                      ) : "点击选择学科"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ background: s.color_code }} />
-                          {s.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setIsAddingSubject(true)} title="新增学科">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>任务标题</Label>
                 <Input
-                  placeholder="输入新学科名称..."
-                  value={newSubjectName}
-                  onChange={e => setNewSubjectName(e.target.value)}
-                  autoFocus
+                  placeholder=""
+                  required
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
                 />
-                <Button type="button" onClick={handleCreateSubject} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "确定"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setIsAddingSubject(false)}>
-                  取消
-                </Button>
               </div>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label>截止日期 (Deadline)</Label>
-            <Popover>
-              <PopoverTrigger>
-                <div
-                  className={cn(
-                    "flex px-3 items-center justify-start h-11 w-full text-sm font-medium border rounded-md bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "yyyy-MM-dd") : <span>预定完成的日期</span>}
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+              <div className="space-y-2">
+                <Label>学科</Label>
+                {!isAddingSubject ? (
+                  <div className="flex gap-2">
+                    <Select value={subjectId} onValueChange={(val) => setSubjectId(val as string)} required>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="点击选择学科">
+                          {subjectId && subjects.find(s => s.id === subjectId) ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ background: subjects.find(s => s.id === subjectId)?.color_code }} />
+                              {subjects.find(s => s.id === subjectId)?.name}
+                            </div>
+                          ) : "点击选择学科"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map(s => (
+                          <SelectItem key={s.id} value={s.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ background: s.color_code }} />
+                              {s.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" size="icon" onClick={() => setIsAddingSubject(true)} title="新增学科">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="输入名称..."
+                      value={newSubjectName}
+                      onChange={e => setNewSubjectName(e.target.value)}
+                      autoFocus
+                    />
+                    <Button type="button" onClick={handleCreateSubject} disabled={loading}>
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "确定"}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => setIsAddingSubject(false)}>
+                      取消
+                    </Button>
+                  </div>
+                )}
+              </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold text-foreground/70">作业详情</Label>
-              <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 shrink-0">
-                <button 
-                  type="button"
-                  onClick={() => setShowPreview(false)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
-                    !showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Pencil className="w-3 h-3" /> 编辑
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setShowPreview(true)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-lg transition-all", 
-                    showPreview ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Eye className="w-3 h-3" /> 预览
-                </button>
+              <div className="space-y-2">
+                <Label>截止日期 (Deadline)</Label>
+                <Popover>
+                  <PopoverTrigger>
+                    <div
+                      className={cn(
+                        "flex px-3 items-center justify-start h-11 w-full text-sm font-medium border rounded-md bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "yyyy-MM-dd") : <span>预定完成的日期</span>}
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>完成该任务可获得积分</Label>
+                <Input type="number" min="0" value={pts} onChange={e => setPts(e.target.value)} />
               </div>
             </div>
 
-            {showPreview ? (
-              <div className="p-6 rounded-3xl bg-muted/30 border border-border/50 min-h-[150px]">
-                <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
-                  <ReactMarkdown>{desc || "暂无预览内容。写入 Markdown 格式以查看排版效果..."}</ReactMarkdown>
+            <div className="space-y-4">
+              <Label>上传资料附件</Label>
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center justify-center w-full h-11 px-4 transition bg-background border-2 border-dashed rounded-md appearance-none cursor-pointer hover:border-primary/50 focus:outline-none">
+                  <span className="flex items-center space-x-2">
+                    <Paperclip className="w-5 h-5 text-muted-foreground" />
+                    <span className="font-medium text-muted-foreground text-sm">点击选择参考资料</span>
+                  </span>
+                  <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                </label>
+                {files.length > 0 && (
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                    {files.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 text-sm bg-muted/50 rounded-md border text-muted-foreground">
+                        <span className="truncate max-w-[150px]">{file.name}</span>
+                        <button type="button" onClick={() => removeFile(idx)} className="text-destructive hover:bg-destructive/10 p-1 rounded-full transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold text-foreground/70">作业详情 (Obsidian 实时预览模式)</Label>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
+                  <Pencil className="w-3 h-3" /> 编辑源码
+                </div>
+                <Textarea
+                  placeholder="支持 Markdown 格式..."
+                  className="min-h-[250px] lg:min-h-[300px] resize-none font-mono p-6 rounded-3xl bg-background/50 border-primary/10 focus-visible:ring-primary/20 leading-relaxed overflow-y-auto"
+                  value={desc}
+                  onChange={e => setDesc(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pl-1">
+                  <Eye className="w-3 h-3" /> 实时渲染效果
+                </div>
+                <div className="p-8 rounded-3xl bg-muted/20 border border-border/40 min-h-[250px] lg:min-h-[300px] overflow-y-auto backdrop-blur-sm">
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
+                    <ReactMarkdown>{desc || "新内容将在此实时排版展示..."}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <Textarea
-                placeholder="支持 Markdown 格式，例如：
-# 核心要求
-- 完成习题 1-5
-- 复习第三章 **重点内容**"
-                className="min-h-[150px] resize-none font-mono p-6 rounded-3xl bg-background/50 border-primary/10 focus-visible:ring-primary/20"
-                value={desc}
-                onChange={e => setDesc(e.target.value)}
-              />
-            )}
+            </div>
           </div>
 
           <div className="space-y-2">
