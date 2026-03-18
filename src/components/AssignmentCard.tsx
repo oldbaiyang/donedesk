@@ -6,7 +6,7 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Calendar, CheckCircle2, Circle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isAfter, endOfDay } from "date-fns";
 import { AssignmentDetailDialog } from "./AssignmentDetailDialog";
 
 type Props = {
@@ -18,7 +18,7 @@ export function AssignmentCard({ assignment }: Props) {
 
   const isCompleted = assignment.status === "completed";
   const dueDate = assignment.due_date ? new Date(assignment.due_date) : null;
-  const isOverdue = !isCompleted && dueDate && dueDate < new Date();
+  const isOverdue = !isCompleted && dueDate && isAfter(new Date(), endOfDay(dueDate));
 
   return (
     <>
