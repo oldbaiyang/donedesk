@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, BookOpen, Gift, BarChart, ListTodo, BarChart3, UserCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/useUser";
+import { useAssignments } from "@/hooks/useAssignments";
 import { Badge } from "@/components/ui/badge";
 
 const links = [
@@ -18,6 +19,7 @@ const links = [
 export function Navigation() {
   const pathname = usePathname();
   const { profile } = useUser();
+  const { profiles, activeStudentId, setActiveStudentId } = useAssignments();
 
   const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'default'}`;
 
@@ -53,6 +55,45 @@ export function Navigation() {
               )
             })}
           </div>
+
+          {/* 家长端：学生切换器 */}
+          {profile?.role === 'parent' && (
+            <div className="hidden md:flex flex-col gap-3 px-4 mt-8">
+              <div className="flex items-center gap-2 text-muted-foreground/60 pl-1">
+                <div className="w-1 h-3 bg-muted-foreground/20 rounded-full" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">家庭成员</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {profiles.filter(p => p.role === 'student').map(student => {
+                  const isActive = activeStudentId === student.id;
+                  const sAvatar = student.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.full_name}`;
+                  return (
+                    <button
+                      key={student.id}
+                      onClick={() => setActiveStudentId(student.id)}
+                      className={cn(
+                        "flex items-center gap-3 p-2.5 rounded-2xl transition-all border group",
+                        isActive 
+                          ? "bg-primary/5 border-primary/20 shadow-sm" 
+                          : "border-transparent hover:bg-muted/30"
+                      )}
+                    >
+                      <div className="relative">
+                        <img src={sAvatar} className="h-8 w-8 rounded-xl bg-background border border-border/10 shadow-sm" alt={student.full_name || "学生头像"} />
+                        {isActive && <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />}
+                      </div>
+                      <span className={cn(
+                        "text-xs font-bold truncate transition-colors",
+                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                      )}>
+                        {student.full_name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 用户身份卡片 */}
@@ -68,7 +109,7 @@ export function Navigation() {
               <img 
                 src={avatarUrl} 
                 className="h-10 w-10 rounded-xl bg-background border border-border/10 shadow-sm"
-                alt="Avatar"
+                alt={profile?.full_name || "用户头像"}
               />
               <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background shadow-sm animate-pulse"></div>
             </div>
