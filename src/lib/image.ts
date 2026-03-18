@@ -1,6 +1,7 @@
 /**
  * 客户端图片压缩与调整工具
  */
+
 /**
  * 将图片缩放并压缩
  * @param file 原始文件
@@ -27,20 +28,15 @@ export async function compressImage(
   if (isHeic) {
     try {
       console.log("Converting HEIC to JPEG...");
-      const heic2any = (await import("heic2any")).default;
-      
-      const pureBlob = new Blob([await file.arrayBuffer()], { type: "image/heic" });
-      
-      const convertedBlob = await heic2any({
-        blob: pureBlob,
-        toType: "image/jpeg",
+      const { heicTo } = await import("heic-to");
+      imageFile = await heicTo({
+        blob: file,
+        type: "image/jpeg",
         quality: quality
       });
-      // heic2any 可能返回数组，取第一个
-      imageFile = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
     } catch (err) {
       console.error("HEIC conversion failed:", err);
-      // 如果转换失败，尝试继续使用原文件（虽然浏览器大概率报错）
+      // 如果转换失败，尝试继续使用原文件
     }
   }
 
