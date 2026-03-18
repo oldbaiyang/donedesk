@@ -174,6 +174,22 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
     setLoading(false);
   };
 
+  const handleSaveDraft = async () => {
+    setLoading(true);
+    // 1. 保存备注（不改变状态）
+    await updateAssignment(assignment.id, { 
+        student_notes: studentNotes 
+    });
+    
+    // 2. 上传新附件
+    if (submissionFiles.length > 0) {
+        await Promise.all(submissionFiles.map(file => uploadAttachment(assignment.id, file, 'submission')));
+    }
+    
+    setSubmissionFiles([]);
+    setLoading(false);
+  };
+
   const handleRollback = async () => {
     setLoading(true);
     await updateAssignment(assignment.id, { status: 'in_progress' });
@@ -495,9 +511,14 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
               <Button className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25" onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存任务变更</>}</Button>
             </>
           ) : canEditSubmission ? (
-            <Button className="w-full max-w-sm h-14 rounded-2xl font-bold text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/25" onClick={handleStudentSubmit} disabled={loading}>
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> 提交作业并完成任务</>}
-            </Button>
+            <div className="flex items-center gap-3 w-full max-w-lg">
+                <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2 border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/10" onClick={handleSaveDraft} disabled={loading}>
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存草稿</>}
+                </Button>
+                <Button className="flex-[1.5] h-12 rounded-2xl font-bold text-base bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/25" onClick={handleStudentSubmit} disabled={loading}>
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> 提交并完成</>}
+                </Button>
+            </div>
           ) : isCompleted ? (
             <div className="flex flex-col items-center gap-2">
                 <Button variant="outline" className="h-10 rounded-xl px-6 border-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 border-transparent transition-all" onClick={handleRollback} disabled={loading}>
