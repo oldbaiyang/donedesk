@@ -14,6 +14,7 @@ import { CalendarIcon, Loader2, Plus, Paperclip, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
+import { PendingFilePreview } from "./PendingFilePreview"
 
 const MarkdownEditor = dynamic(
   () => import("./MarkdownEditor").then((mod) => mod.MarkdownEditor),
@@ -249,14 +250,13 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
                 <input type="file" multiple className="hidden" onChange={handleFileChange} />
               </label>
               {files.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {files.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 pl-3 text-xs bg-muted/50 rounded-xl border border-border/50 text-muted-foreground animate-in slide-in-from-bottom-2">
-                      <span className="truncate max-w-[80px]">{file.name}</span>
-                      <button type="button" onClick={() => removeFile(idx)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded-full transition-colors">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <PendingFilePreview 
+                      key={idx} 
+                      file={file} 
+                      onRemove={() => removeFile(idx)} 
+                    />
                   ))}
                 </div>
               )}
