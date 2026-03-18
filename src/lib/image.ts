@@ -28,8 +28,11 @@ export async function compressImage(
     try {
       console.log("Converting HEIC to JPEG...");
       const heic2any = (await import("heic2any")).default;
+      
+      const pureBlob = new Blob([await file.arrayBuffer()], { type: "image/heic" });
+      
       const convertedBlob = await heic2any({
-        blob: file,
+        blob: pureBlob,
         toType: "image/jpeg",
         quality: quality
       });
