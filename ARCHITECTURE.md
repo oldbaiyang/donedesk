@@ -17,16 +17,22 @@
   - 详情页：`200x200` 规格，`inline-block` 布局。
   - 卡片预览：正则提取 Markdown 中的图片 URL，仅在无文本时渲染缩略图。
 
-## 3. 数据库结构 (Supabase)
-目前 `assignments` 表核心字段：
-- `start_date` (timestamp): 任务起始时间（新增字段）。
-- `due_date` (timestamp): 截止时间。
-- `description` (text): 存储 Tiptap 产出的 Markdown 字符串。
-- `reward_pts` (integer): 任务分值。
+## 3. 权限与角色模型: RBAC Lite
+项目实现了基于 `profiles` 表的轻量级权限控制：
+- **Parent (家长)**：作为管理员，具备所属 `parent_id` 下所有任务的 `CRUD` 权限。
+- **Student (学生)**：支持“自建任务”的完全控制；对于家长创建的任务，仅开放 `Submission` (备注及附件上传) 权限。
+- **实现细节**：在 `AssignmentDetailDialog` 中通过 `isCreator` 与 `isParent` 布尔值进行 UI 按钮的动态挂载与逻辑拦截。
 
-## 4. 水合安全性 (Hydration)
-由于浏览器扩展或开发工具可能注入 `style` 属性，全局 `html` 标签必须包含 `suppressHydrationWarning`，以防止 React 水合失败。
+## 4. 附件分类索引: Material vs Submission
+为了区分“任务要求”与“作业成果”，`attachments` 表引入了 `purpose` 字段：
+- **Material**：关联任务主体展示。
+- **Submission**：关联交作业区展示，支持学生多次提交。
+- **图片压缩管道**：调用 `browser-image-compression`，在上传 Storage 前将原始大图压至 1MB 以内，大幅提升移动端加载体验。
 
-## 5. 后续开发建议
-- **图片上传**：目前图片渲染依赖外部 URL，后续应集成 Supabase Storage 实现直接拖拽上传至 Tiptap。
-- **移动端适配**：需针对 `200x200` 的横排图片在窄屏下的折行行为进行进一步媒体查询优化。
+## 5. 加载性能与视觉平滑度
+- **双重加载锁**：`AssignmentsProvider` 启动时强制进入 `loading` 态，并与 `UserProvider` 的身份校验逻辑同步，彻底解决了刷新瞬间“空状态”内容的瞬时闪烁。
+- **Skeleton 占位**：Dashboard 与 Assignments 页面均实现脉冲动画骨架屏，确保数据未就绪时布局不崩塌。
+
+## 6. 后续开发建议
+- **积分反馈动画**：目前积分结算为瞬时变更，建议增加类似“金币弹出”的 Lottie 或 CSS 关键帧动画增加成就感。
+- **全局通知**：集成 `sonner` 或 `toast` 处理跨组件的数据变更反馈。
