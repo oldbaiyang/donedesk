@@ -2,6 +2,8 @@
  * 客户端图片压缩与调整工具
  */
 
+import heic2any from "heic2any";
+
 /**
  * 将图片缩放并压缩
  * @param file 原始文件
@@ -16,9 +18,34 @@ export async function compressImage(
   maxHeight: number = 1920,
   quality: number = 0.8
 ): Promise<Blob> {
+  let imageFile: File | Blob = file;
+
+  // 检查是否为 HEIC 格式
+  const isHeic = 
+    file.type === "image/heic" || 
+    file.type === "image/heif" || 
+    file.name.toLowerCase().endsWith(".heic") || 
+    file.name.toLowerCase().endsWith(".heif");
+
+  if (isHeic) {
+    try {
+      console.log("Converting HEIC to JPEG...");
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: quality
+      });
+      // heic2any 可能返回数组，取第一个
+      imageFile = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+    } catch (err) {
+      console.error("HEIC conversion failed:", err);
+      // 如果转换失败，尝试继续使用原文件（虽然浏览器大概率报错）
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(imageFile);
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target?.result as string;

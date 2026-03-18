@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Upload, X } from "lucide-react"
+import { Upload, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import heic2any from "heic2any"
 
 export function PendingFilePreview({ 
   file, 
@@ -14,14 +15,48 @@ export function PendingFilePreview({
   colorClass?: "primary" | "indigo" 
 }) {
   const [url, setUrl] = useState<string>("");
+  const [converting, setConverting] = useState(false);
   
-  useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+  const isHeic = 
+    file.type === "image/heic" || 
+    file.type === "image/heif" || 
+    file.name.toLowerCase().endsWith(".heic") || 
+    file.name.toLowerCase().endsWith(".heif");
 
-  const isImg = file.type.startsWith('image/');
+  useEffect(() => {
+    let objectUrl = "";
+
+    const loadPreview = async () => {
+      if (isHeic) {
+        setConverting(true);
+        try {
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.3 // 预览用低质量即可
+          });
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          objectUrl = URL.createObjectURL(blob);
+          setUrl(objectUrl);
+        } catch (err) {
+          console.error("HEIC preview conversion failed:", err);
+        } finally {
+          setConverting(false);
+        }
+      } else {
+        objectUrl = URL.createObjectURL(file);
+        setUrl(objectUrl);
+      }
+    };
+
+    loadPreview();
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file, isHeic]);
+
+  const isImg = file.type.startsWith('image/') || isHeic;
 
   return (
     <div className="relative group animate-in zoom-in-50">
@@ -29,7 +64,9 @@ export function PendingFilePreview({
         "w-16 h-16 rounded-xl border-2 border-dashed overflow-hidden flex items-center justify-center bg-background/50",
         colorClass === "primary" ? "border-primary/40" : "border-indigo-500/40"
       )}>
-        {isImg && url ? (
+        {converting ? (
+          <Loader2 className={cn("w-4 h-4 animate-spin opacity-40", colorClass === "primary" ? "text-primary" : "text-indigo-500")} />
+        ) : isImg && url ? (
           <img src={url} className="w-full h-full object-cover opacity-60 grayscale-[0.3]" alt="Preview" />
         ) : (
           <Upload className={cn("w-4 h-4 opacity-40", colorClass === "primary" ? "text-primary" : "text-indigo-500")} />

@@ -193,7 +193,11 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     let uploadData: File | Blob = file;
     
     // 如果是图片，先进行压缩处理
-    if (file.type.startsWith('image/')) {
+    const isImage = file.type.startsWith('image/') || 
+                    file.name.toLowerCase().endsWith('.heic') || 
+                    file.name.toLowerCase().endsWith('.heif');
+                    
+    if (isImage) {
         try {
             uploadData = await compressImage(file);
         } catch (err) {
