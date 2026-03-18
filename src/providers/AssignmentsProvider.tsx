@@ -32,12 +32,12 @@ type AssignmentsContextType = {
 const AssignmentsContext = createContext<AssignmentsContextType | undefined>(undefined);
 
 export function AssignmentsProvider({ children }: { children: React.ReactNode }) {
-  const { profile, userId } = useUser();
+  const { profile, userId, loading: userLoading } = useUser();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // 初始改为 true，直到完成第一次相关获取
 
   // 获取该家庭下的所有成员
   const fetchProfiles = useCallback(async () => {
@@ -63,6 +63,9 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       const firstStudent = data?.find(p => p.role === 'student');
       if (firstStudent && !activeStudentId) {
         setActiveStudentId(firstStudent.id);
+      } else if (!firstStudent) {
+        // 家长没有学生，也算加载完成
+        setLoading(false);
       }
     } else {
       setProfiles([profile]);
@@ -96,6 +99,10 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     const sId = activeStudentId;
     if (!sId) {
       console.log("[AssignmentsProvider] No activeStudentId, skipping fetch.");
+      // 如果没有活跃学生且用户已加载完成，且不是家长（或家长暂无学生），则允许停止 loading
+      if (!userLoading) {
+        setLoading(false);
+      }
       return;
     }
 
@@ -379,7 +386,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       profiles,
       activeStudentId,
       setActiveStudentId,
-      loading,
+      loading: loading || userLoading,
       fetchSubjects,
       fetchAssignments,
       fetchProfiles,
