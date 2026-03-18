@@ -33,6 +33,15 @@
 - **双重加载锁**：`AssignmentsProvider` 启动时强制进入 `loading` 态，并与 `UserProvider` 的身份校验逻辑同步，彻底解决了刷新瞬间“空状态”内容的瞬时闪烁。
 - **Skeleton 占位**：Dashboard 与 Assignments 页面均实现脉冲动画骨架屏，确保数据未就绪时布局不崩塌。
 
-## 6. 后续开发建议
+## 6. HEIC 转换管道 (Client-Side HEIC Strategy)
+为了解决 iOS 设备上传 HEIC 图片导致其他端无法预览的问题，系统集成了 `heic-to`。
+- **转换逻辑**：在 `PendingFilePreview` (预览) 和 `AssignmentsProvider` (上传) 中采用动态导入，利用浏览器 WASM 环境将 HEIC 转为 JPEG。
+- **存储优化**：转换后文件重命名为 `.jpg`，并在 Supabase 中存储为 `image/jpeg` 类型，实现全平台 CDN 级别的渲染兼容。
+
+## 7. 学科分类筛选 (Subject Filtering Logic)
+- **状态管理**：在 `Dashboard` 与 `AssignmentsPage` 中维护 `selectedSubjectId` 状态。
+- **前端过滤**：采用全量获取 + 前端实时过滤的策略，直接基于内存数据筛选，提供极致的响应速度。
+
+## 8. 后续开发建议
 - **积分反馈动画**：目前积分结算为瞬时变更，建议增加类似“金币弹出”的 Lottie 或 CSS 关键帧动画增加成就感。
 - **全局通知**：集成 `sonner` 或 `toast` 处理跨组件的数据变更反馈。
