@@ -23,6 +23,7 @@ type AssignmentsContextType = {
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File, purpose?: 'material' | 'submission') => Promise<boolean>;
+  deleteAttachment: (attachmentId: string) => Promise<boolean>;
   addStudent: (fullName: string) => Promise<Profile | null>;
   updateStudent: (id: string, updates: Partial<Profile>) => Promise<boolean>;
 };
@@ -204,6 +205,53 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return false;
   };
 
+  const deleteAttachment = async (attachmentId: string): Promise<boolean> => {
+    // 1. 获取附件信息以取得存储路径
+    const { data: attachment, error: fetchError } = await supabase
+      .from('attachments')
+      .select('file_url')
+      .eq('id', attachmentId)
+      .single();
+
+    if (fetchError || !attachment) {
+      console.error("Error fetching attachment for deletion:", fetchError);
+      return false;
+    }
+
+    // 从 URL 中解析出 Storage 路径
+    // URL 格式: https://.../storage/v1/object/public/attachments/[userId]/[fileName]
+    const urlParts = attachment.file_url.split('/attachments/');
+    if (urlParts.length < 2) {
+      console.error("Invalid attachment URL format:", attachment.file_url);
+      return false;
+    }
+    const storagePath = urlParts[1];
+
+    // 2. 从 Storage 中删除物理文件
+    const { error: storageError } = await supabase.storage
+      .from('attachments')
+      .remove([storagePath]);
+
+    if (storageError) {
+      console.error("Error deleting from storage:", storageError);
+      return false;
+    }
+
+    // 3. 从数据库中删除记录
+    const { error: dbError } = await supabase
+      .from('attachments')
+      .delete()
+      .eq('id', attachmentId);
+
+    if (!dbError) {
+      await fetchAssignments();
+      return true;
+    }
+    
+    console.error("Error deleting attachment from DB:", dbError);
+    return false;
+  };
+
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
     // 过滤掉不属于数据库列的字段（如 subject, attachments）
     const { subject, attachments, ...dbUpdates } = updates as any;
@@ -306,6 +354,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       updateAssignment,
       updateAssignmentStatus,
       uploadAttachment,
+      deleteAttachment,
       addStudent,
       updateStudent
     }}>

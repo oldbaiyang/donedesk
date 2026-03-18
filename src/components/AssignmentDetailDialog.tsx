@@ -74,7 +74,7 @@ const cleanMarkdown = (content: string) => {
 
 export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props) {
   const { profile } = useUser();
-  const { updateAssignmentStatus, updateAssignment, subjects, uploadAttachment } = useAssignments();
+  const { updateAssignmentStatus, updateAssignment, subjects, uploadAttachment, deleteAttachment } = useAssignments();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -139,6 +139,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
   const materialFiles = materials.filter(a => !isImageFile(a.file_name));
   
   const submissionImages = submissions.filter(a => isImageFile(a.file_name));
+  const submissionNonImages = submissions.filter(a => !isImageFile(a.file_name));
 
   const handleSaveEdit = async () => {
     setLoading(true);
@@ -321,7 +322,37 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             {/* 资料附件展示与编辑 */}
             {isEditing ? (
                 <div className="space-y-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 pl-1 flex items-center gap-1"><Paperclip className="w-3 h-3" /> 添加任务资料/要求附件</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 pl-1 flex items-center gap-1"><Paperclip className="w-3 h-3" /> 任务资料/要求附件 (编辑中)</p>
+                    
+                    {/* 已有的资料显示删除按钮 */}
+                    {(materialImages.length > 0 || materialFiles.length > 0) && (
+                        <div className="space-y-3 p-3 rounded-2xl bg-primary/5 border border-primary/10">
+                            {materialImages.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {materialImages.map(img => (
+                                        <div key={img.id} className="relative group">
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary/20 bg-muted/20">
+                                                <img src={img.file_url} className="w-full h-full object-cover" alt="资料" />
+                                            </div>
+                                            <button onClick={() => deleteAttachment(img.id)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform"><X className="w-3 h-3" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {materialFiles.length > 0 && (
+                                <div className="grid grid-cols-1 gap-2">
+                                    {materialFiles.map(att => (
+                                        <div key={att.id} className="flex items-center gap-2 p-2 rounded-xl bg-card border group">
+                                            <Paperclip className="w-3 h-3 text-primary shrink-0" />
+                                            <span className="text-[10px] font-medium truncate flex-1">{att.file_name}</span>
+                                            <button onClick={() => deleteAttachment(att.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {pendingMaterialFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {pendingMaterialFiles.map((f, i) => (
@@ -399,10 +430,33 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                     {submissionImages.length > 0 && (
                         <div className="grid grid-cols-4 gap-3">
                             {submissionImages.map(img => (
-                                <button key={img.id} onClick={() => setSelectedImage(img.file_url)} className="aspect-square rounded-2xl overflow-hidden border-2 border-indigo-500/20 bg-muted/20 hover:border-indigo-500/40 transition-all group relative">
-                                    <img src={img.file_url} className="w-full h-full object-cover" alt="成果" />
-                                    <Badge className="absolute top-1 right-1 h-4 px-1 text-[8px] bg-indigo-500">已提交</Badge>
-                                </button>
+                                <div key={img.id} className="relative aspect-square">
+                                    <button onClick={() => setSelectedImage(img.file_url)} className="w-full h-full rounded-2xl overflow-hidden border-2 border-indigo-500/20 bg-muted/20 hover:border-indigo-500/40 transition-all group relative">
+                                        <img src={img.file_url} className="w-full h-full object-cover" alt="成果" />
+                                        <Badge className="absolute top-1 right-1 h-4 px-1 text-[8px] bg-indigo-500">已提交</Badge>
+                                    </button>
+                                    {canEditSubmission && (
+                                        <button onClick={() => deleteAttachment(img.id)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform z-10"><X className="w-3 h-3" /></button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 已提交的非图片成果 */}
+                    {submissionNonImages.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {submissionNonImages.map(att => (
+                                <div key={att.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-indigo-500/10 hover:border-indigo-500/40 transition-all group">
+                                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors shrink-0"><Paperclip className="w-4 h-4" /></div>
+                                    <div className="flex-1 min-w-0">
+                                        <a href={att.file_url} target="_blank" rel="noreferrer" className="text-xs font-medium truncate block text-foreground/70 mb-0.5">{att.file_name}</a>
+                                        <Badge variant="outline" className="h-4 px-1 text-[8px] bg-indigo-500/5 text-indigo-500 border-indigo-500/20">已提交</Badge>
+                                    </div>
+                                    {canEditSubmission && (
+                                        <button onClick={() => deleteAttachment(att.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     )}
