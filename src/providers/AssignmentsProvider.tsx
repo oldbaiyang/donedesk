@@ -23,7 +23,7 @@ type AssignmentsContextType = {
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File, purpose?: 'material' | 'submission') => Promise<boolean>;
-  deleteAttachment: (attachmentId: string) => Promise<boolean>;
+  deleteAttachment: (attachmentId: string, fileUrl: string) => Promise<boolean>;
   addStudent: (fullName: string) => Promise<Profile | null>;
   updateStudent: (id: string, updates: Partial<Profile>) => Promise<boolean>;
 };
@@ -205,39 +205,22 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return false;
   };
 
-  const deleteAttachment = async (attachmentId: string): Promise<boolean> => {
-    // 1. 获取附件信息以取得存储路径
-    const { data: attachment, error: fetchError } = await supabase
-      .from('attachments')
-      .select('file_url')
-      .eq('id', attachmentId)
-      .single();
-
-    if (fetchError || !attachment) {
-      console.error("Error fetching attachment for deletion (Full):", JSON.stringify(fetchError, null, 2), "ID:", attachmentId);
-      return false;
-    }
-
+  const deleteAttachment = async (attachmentId: string, fileUrl: string): Promise<boolean> => {
     // 从 URL 中解析出 Storage 路径
     // URL 格式: https://.../storage/v1/object/public/attachments/[userId]/[fileName]
-    const urlParts = attachment.file_url.split('/attachments/');
-    if (urlParts.length < 2) {
-      console.error("Invalid attachment URL format:", attachment.file_url);
-      return false;
-    }
-    const storagePath = urlParts[1];
-
-    // 2. 从 Storage 中删除物理文件
-    const { error: storageError } = await supabase.storage
-      .from('attachments')
-      .remove([storagePath]);
-
-    if (storageError) {
-      console.error("Error deleting from storage:", storageError);
-      return false;
+    const urlParts = fileUrl.split('/attachments/');
+    if (urlParts.length >= 2) {
+      const storagePath = urlParts[1];
+      // 1. 从 Storage 中删除物理文件
+      const { error: storageError } = await supabase.storage
+        .from('attachments')
+        .remove([storagePath]);
+      if (storageError) {
+        console.error("Error deleting from storage:", storageError);
+      }
     }
 
-    // 3. 从数据库中删除记录
+    // 2. 从数据库中删除记录
     const { error: dbError } = await supabase
       .from('attachments')
       .delete()
@@ -248,7 +231,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       return true;
     }
     
-    console.error("Error deleting attachment from DB:", dbError);
+    console.error("Error deleting attachment from DB:", JSON.stringify(dbError, null, 2));
     return false;
   };
 

@@ -334,7 +334,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                                             <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary/20 bg-muted/20">
                                                 <img src={img.file_url} className="w-full h-full object-cover" alt="资料" />
                                             </div>
-                                            <button onClick={() => deleteAttachment(img.id)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform"><X className="w-3 h-3" /></button>
+                                            <button onClick={() => deleteAttachment(img.id, img.file_url)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform"><X className="w-3 h-3" /></button>
                                         </div>
                                     ))}
                                 </div>
@@ -345,7 +345,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                                         <div key={att.id} className="flex items-center gap-2 p-2 rounded-xl bg-card border group">
                                             <Paperclip className="w-3 h-3 text-primary shrink-0" />
                                             <span className="text-[10px] font-medium truncate flex-1">{att.file_name}</span>
-                                            <button onClick={() => deleteAttachment(att.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
+                                            <button onClick={() => deleteAttachment(att.id, att.file_url)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
                                         </div>
                                     ))}
                                 </div>
@@ -436,7 +436,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                                         <Badge className="absolute top-1 right-1 h-4 px-1 text-[8px] bg-indigo-500">已提交</Badge>
                                     </button>
                                     {canEditSubmission && (
-                                        <button onClick={() => deleteAttachment(img.id)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform z-10"><X className="w-3 h-3" /></button>
+                                        <button onClick={() => deleteAttachment(img.id, img.file_url)} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 shadow-lg hover:scale-110 transition-transform z-10"><X className="w-3 h-3" /></button>
                                     )}
                                 </div>
                             ))}
@@ -454,7 +454,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                                         <Badge variant="outline" className="h-4 px-1 text-[8px] bg-indigo-500/5 text-indigo-500 border-indigo-500/20">已提交</Badge>
                                     </div>
                                     {canEditSubmission && (
-                                        <button onClick={() => deleteAttachment(att.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
+                                        <button onClick={() => deleteAttachment(att.id, att.file_url)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-lg"><X className="w-3 h-3" /></button>
                                     )}
                                 </div>
                             ))}
