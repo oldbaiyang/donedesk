@@ -160,7 +160,11 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     console.log("[AssignmentsProvider] Adding assignment for student:", activeStudentId, data);
     const { data: record, error } = await supabase
       .from('assignments')
-      .insert({ ...data, student_id: activeStudentId })
+      .insert({ 
+        ...data, 
+        student_id: activeStudentId,
+        user_id: profile?.id // 记录创建者 ID
+      })
       .select()
       .single();
     if (error) {

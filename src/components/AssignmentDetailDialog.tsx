@@ -72,6 +72,9 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
   const dueDate = assignment.due_date ? new Date(assignment.due_date) : null
   const isParent = profile?.role === 'parent';
   const isStudent = profile?.role === 'student';
+  const isCreator = assignment.user_id === profile?.id;
+  const canEditMeta = isParent || isCreator;
+  const canDelete = isParent || isCreator;
   const canEditSubmission = !isCompleted && (isStudent || isParent);
 
   useEffect(() => {
@@ -190,7 +193,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
           {/* 头部：标题与状态 */}
           <DialogHeader className="space-y-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-3 flex-1">
+              <div className="flex-1 min-w-0">
                 {isEditing ? (
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 pl-1">任务名称</label>
@@ -207,7 +210,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                   </DialogTitle>
                 )}
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-1">
                   {!isEditing && (
                     <>
                       {assignment.subject && (
@@ -223,12 +226,11 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                 </div>
               </div>
               
-              {/* 仅家长可在未完成时编辑任务详情 */}
-              {isParent && !isCompleted && (
+              {canEditMeta && !isCompleted && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("rounded-xl transition-all", isEditing ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-primary/10 text-primary hover:bg-primary/20")}
+                  className={cn("rounded-xl transition-all shrink-0", isEditing ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-primary/10 text-primary hover:bg-primary/20")}
                   onClick={() => setIsEditing(!isEditing)}
                   disabled={loading}
                 >
@@ -485,9 +487,11 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
         <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4 shrink-0">
           {isEditing ? (
             <div className="flex items-center gap-3 w-full max-w-lg">
-                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
-                    <Trash2 className="w-5 h-5" />
-                </Button>
+                {canDelete && (
+                  <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
+                      <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
                 <div className="flex gap-3 flex-1">
                     <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2" onClick={() => setIsEditing(false)} disabled={loading}>取消修改</Button>
                     <Button className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25" onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存变更</>}</Button>
@@ -495,9 +499,11 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             </div>
           ) : canEditSubmission ? (
             <div className="flex items-center gap-3 w-full max-w-lg">
-                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
-                    <Trash2 className="w-5 h-5" />
-                </Button>
+                {canDelete && (
+                  <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
+                      <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
                 <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2 border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/10" onClick={handleSaveDraft} disabled={loading}>
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存草稿</>}
                 </Button>
@@ -508,9 +514,11 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
           ) : isCompleted ? (
             <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={handleDelete} disabled={loading} title="删除任务">
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={handleDelete} disabled={loading} title="删除任务">
+                          <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button variant="outline" className="h-10 rounded-xl px-6 border-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 border-transparent transition-all" onClick={handleRollback} disabled={loading}>
                         <RotateCcw className="w-4 h-4 mr-2" /> 撤销完成状态
                     </Button>

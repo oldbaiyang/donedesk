@@ -18,6 +18,7 @@ export type Attachment = {
 
 export type Assignment = {
   id: string;
+  user_id: string; // 创建者 ID
   student_id: string;
   subject_id: string;
   title: string;
