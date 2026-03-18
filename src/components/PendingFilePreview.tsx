@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Upload, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import heic2any from "heic2any"
 
 export function PendingFilePreview({ 
   file, 
@@ -30,6 +29,7 @@ export function PendingFilePreview({
       if (isHeic) {
         setConverting(true);
         try {
+          const heic2any = (await import("heic2any")).default;
           const convertedBlob = await heic2any({
             blob: file,
             toType: "image/jpeg",
@@ -40,6 +40,7 @@ export function PendingFilePreview({
           setUrl(objectUrl);
         } catch (err) {
           console.error("HEIC preview conversion failed:", err);
+          setUrl(""); // 清除可能的错误 URL
         } finally {
           setConverting(false);
         }

@@ -1,9 +1,6 @@
 /**
  * 客户端图片压缩与调整工具
  */
-
-import heic2any from "heic2any";
-
 /**
  * 将图片缩放并压缩
  * @param file 原始文件
@@ -30,6 +27,7 @@ export async function compressImage(
   if (isHeic) {
     try {
       console.log("Converting HEIC to JPEG...");
+      const heic2any = (await import("heic2any")).default;
       const convertedBlob = await heic2any({
         blob: file,
         toType: "image/jpeg",
