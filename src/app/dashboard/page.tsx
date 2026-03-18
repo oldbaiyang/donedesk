@@ -1,16 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAssignments } from "@/hooks/useAssignments";
 import { AssignmentCard } from "@/components/AssignmentCard";
 import { CreateAssignmentDialog } from "@/components/CreateAssignmentDialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
-  const { assignments, fetchAssignments, fetchSubjects, loading } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects, subjects, loading } = useAssignments();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   
   // 组件挂载时获取数据
   useEffect(() => {
@@ -21,8 +23,13 @@ export default function Dashboard() {
     init();
   }, [fetchSubjects, fetchAssignments]);
 
-  const pendingAssignments = assignments.filter(a => a.status !== 'completed');
-  const completedAssignments = assignments.filter(a => a.status === 'completed');
+  const filteredAssignments = useMemo(() => {
+    if (!selectedSubjectId) return assignments;
+    return assignments.filter(a => a.subject_id === selectedSubjectId);
+  }, [assignments, selectedSubjectId]);
+
+  const pendingAssignments = filteredAssignments.filter(a => a.status !== 'completed');
+  const completedAssignments = filteredAssignments.filter(a => a.status === 'completed');
 
   // 加载中且是第一次加载时显示骨架屏
   if (loading && isFirstLoad) {
@@ -61,6 +68,40 @@ export default function Dashboard() {
             <Plus className="mr-2 h-5 w-5" /> 新建作业
           </div>
         </div>
+      </div>
+
+      {/* 学科筛选器 */}
+      <div className="flex flex-wrap gap-2 py-2">
+        <button
+          onClick={() => setSelectedSubjectId(null)}
+          className={cn(
+            "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 border-2",
+            !selectedSubjectId 
+              ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+              : "bg-background text-muted-foreground border-muted hover:border-primary/40 hover:text-primary"
+          )}
+        >
+          全部
+        </button>
+        {subjects.map((subject) => (
+          <button
+            key={subject.id}
+            onClick={() => setSelectedSubjectId(subject.id)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 border-2",
+              selectedSubjectId === subject.id
+                ? "shadow-md scale-105"
+                : "bg-background text-muted-foreground border-muted hover:border-primary/40"
+            )}
+            style={{
+              backgroundColor: selectedSubjectId === subject.id ? subject.color_code : undefined,
+              borderColor: selectedSubjectId === subject.id ? subject.color_code : undefined,
+              color: selectedSubjectId === subject.id ? '#fff' : undefined,
+            }}
+          >
+            {subject.name}
+          </button>
+        ))}
       </div>
 
       {pendingAssignments.length > 0 && (

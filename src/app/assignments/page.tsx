@@ -1,16 +1,23 @@
 "use client"
 
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAssignments } from "@/hooks/useAssignments";
 import { AssignmentCard } from "@/components/AssignmentCard";
+import { cn } from "@/lib/utils";
 
 export default function AssignmentsPage() {
-  const { assignments, fetchAssignments, fetchSubjects, loading } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects, subjects, loading } = useAssignments();
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubjects();
     fetchAssignments();
   }, [fetchSubjects, fetchAssignments]);
+
+  const filteredAssignments = useMemo(() => {
+    if (!selectedSubjectId) return assignments;
+    return assignments.filter(a => a.subject_id === selectedSubjectId);
+  }, [assignments, selectedSubjectId]);
 
   if (loading && assignments.length === 0) {
     return (
@@ -39,12 +46,46 @@ export default function AssignmentsPage() {
         </div>
       </div>
 
+      {/* 学科筛选器 */}
+      <div className="flex flex-wrap gap-2 pb-2">
+        <button
+          onClick={() => setSelectedSubjectId(null)}
+          className={cn(
+            "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 border-2",
+            !selectedSubjectId 
+              ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+              : "bg-background text-muted-foreground border-muted hover:border-primary/40 hover:text-primary"
+          )}
+        >
+          全部
+        </button>
+        {subjects.map((subject) => (
+          <button
+            key={subject.id}
+            onClick={() => setSelectedSubjectId(subject.id)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 border-2",
+              selectedSubjectId === subject.id
+                ? "shadow-md scale-105"
+                : "bg-background text-muted-foreground border-muted hover:border-primary/40"
+            )}
+            style={{
+              backgroundColor: selectedSubjectId === subject.id ? subject.color_code : undefined,
+              borderColor: selectedSubjectId === subject.id ? subject.color_code : undefined,
+              color: selectedSubjectId === subject.id ? '#fff' : undefined,
+            }}
+          >
+            {subject.name}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4">
-        {assignments.map(item => (
+        {filteredAssignments.map(item => (
           <AssignmentCard key={item.id} assignment={item} />
         ))}
 
-        {!loading && assignments.length === 0 && (
+        {!loading && filteredAssignments.length === 0 && (
           <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-primary/20 rounded-3xl bg-primary/5">
             这里干干净净，暂无任何学业资料沉淀。
           </div>
