@@ -53,58 +53,76 @@ export function AssignmentCard({ assignment }: Props) {
                 <h3 className={cn("font-semibold leading-none", isCompleted && "line-through text-muted-foreground")}>
                   {assignment.title}
                 </h3>
-                {assignment.description && (() => {
-                  // 1. 提取图片
-                  const imgRegex = /!\[.*?\]\((.*?)\)/g;
-                  const images: string[] = [];
-                  let match;
-                  const cleanDesc = assignment.description.replace(/\\(!|\[|\]|\(|\))/g, '$1');
-                  
-                  while ((match = imgRegex.exec(cleanDesc)) !== null) {
-                    images.push(match[1]);
-                  }
+                {/* 描述：严格截断并保持高度趋势 */}
+                <div className="min-h-[2.5rem]">
+                  {assignment.description && (() => {
+                    const imgRegex = /!\[.*?\]\((.*?)\)/g;
+                    const images: string[] = [];
+                    let match;
+                    const cleanDesc = assignment.description.replace(/\\(!|\[|\]|\(|\))/g, '$1');
+                    
+                    while ((match = imgRegex.exec(cleanDesc)) !== null) {
+                      images.push(match[1]);
+                    }
 
-                  // 2. 提取并清洗纯文本
-                  const textOnly = cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '').trim();
+                    const textOnly = cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '').trim();
 
-                  if (images.length > 0 && textOnly === "") {
+                    if (images.length > 0 && textOnly === "") {
+                      return (
+                        <div className="flex gap-1.5 mt-2 overflow-hidden h-10">
+                          {images.slice(0, 3).map((src, i) => (
+                            <img 
+                              key={i} 
+                              src={src} 
+                              className="h-full aspect-square object-cover rounded-md border border-border/40 shadow-sm" 
+                              alt=""
+                            />
+                          ))}
+                          {images.length > 3 && (
+                            <div className="h-full aspect-square rounded-md bg-muted/30 border border-dashed flex items-center justify-center text-[10px] text-muted-foreground whitespace-nowrap px-1">
+                              +{images.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div className="flex gap-1.5 mt-2 overflow-hidden h-12">
-                        {images.slice(0, 4).map((src, i) => (
-                          <img 
-                            key={i} 
-                            src={src} 
-                            className="h-full aspect-square object-cover rounded-md border border-border/40 shadow-sm" 
-                            alt=""
-                          />
-                        ))}
-                        {images.length > 4 && (
-                          <div className="h-full aspect-square rounded-md bg-muted/30 border border-dashed flex items-center justify-center text-[10px] text-muted-foreground">
-                            +{images.length - 4}
-                          </div>
-                        )}
-                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                        {textOnly || cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '[图片]')}
+                      </p>
                     );
-                  }
+                  })()}
+                </div>
+
+                {/* 附件展示模块：精简为单行或角标模式 */}
+                {(() => {
+                  const materialAtts = assignment.attachments?.filter(a => (a.purpose || 'material') === 'material') || [];
+                  if (materialAtts.length === 0) return null;
 
                   return (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {textOnly || cleanDesc.replace(/!\[.*?\]\(.*?\)/g, '[图片]')}
-                    </p>
-                  );
-                })()}
-                {/* 附件展示模块：仅展示教学资料 */}
-                {!!assignment.attachments?.filter(a => (a.purpose || 'material') === 'material').length && (
-                  <div className="flex flex-wrap gap-2 mt-2.5">
-                    {assignment.attachments
-                      .filter(a => (a.purpose || 'material') === 'material')
-                      .map(att => (
-                        <a key={att.id} href={att.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-primary font-medium hover:underline bg-primary/10 border border-primary/20 px-2 py-1 rounded-md transition-colors hover:bg-primary/20">
-                          <Paperclip className="w-3 h-3" /> {att.file_name}
+                    <div className="flex flex-wrap gap-1.5 mt-2 max-h-16 overflow-hidden">
+                      {materialAtts.slice(0, 2).map(att => (
+                        <a 
+                          key={att.id} 
+                          href={att.file_url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          onClick={(e) => e.stopPropagation()} 
+                          className="flex items-center gap-1 text-[10px] text-primary/80 font-medium hover:underline bg-primary/5 border border-primary/10 px-1.5 py-0.5 rounded transition-colors hover:bg-primary/10 max-w-[120px]"
+                        >
+                          <Paperclip className="w-2.5 h-2.5 shrink-0" /> 
+                          <span className="truncate">{att.file_name}</span>
                         </a>
                       ))}
-                  </div>
-                )}
+                      {materialAtts.length > 2 && (
+                        <div className="flex items-center text-[10px] text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded border border-dashed border-border/50">
+                          +{materialAtts.length - 2} 份文件
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               
               {assignment.subject && (
