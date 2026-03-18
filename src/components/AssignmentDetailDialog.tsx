@@ -7,7 +7,7 @@ import { Textarea } from "./ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar as CalendarUI } from "./ui/calendar"
-import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X, MessageSquare, Upload } from "lucide-react"
+import { Calendar, Paperclip, Star, Info, CheckCircle2, RotateCcw, Loader2, Edit2, Save, X, MessageSquare, Upload, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useRef } from "react"
@@ -41,7 +41,7 @@ const cleanMarkdown = (content: string) => {
 
 export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props) {
   const { profile } = useUser();
-  const { updateAssignmentStatus, updateAssignment, subjects, uploadAttachment, deleteAttachment } = useAssignments();
+  const { updateAssignmentStatus, updateAssignment, subjects, uploadAttachment, deleteAttachment, deleteAssignment } = useAssignments();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -159,7 +159,18 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
 
   const handleRollback = async () => {
     setLoading(true);
-    await updateAssignment(assignment.id, { status: 'in_progress' });
+    await updateAssignmentStatus(assignment.id, 'in_progress');
+    setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("确定要彻底删除这个作业及其所有附件吗？此操作不可撤销。")) return;
+    
+    setLoading(true);
+    const success = await deleteAssignment(assignment.id, assignment.attachments);
+    if (success) {
+      onOpenChange(false);
+    }
     setLoading(false);
   };
 
@@ -473,12 +484,20 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
         {/* 底部操作固定栏 */}
         <div className="p-6 bg-muted/50 border-t backdrop-blur-sm flex items-center justify-center gap-4 shrink-0">
           {isEditing ? (
-            <>
-              <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2" onClick={() => setIsEditing(false)} disabled={loading}>取消修改</Button>
-              <Button className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25" onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存任务变更</>}</Button>
-            </>
+            <div className="flex items-center gap-3 w-full max-w-lg">
+                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
+                    <Trash2 className="w-5 h-5" />
+                </Button>
+                <div className="flex gap-3 flex-1">
+                    <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2" onClick={() => setIsEditing(false)} disabled={loading}>取消修改</Button>
+                    <Button className="flex-[2] h-12 rounded-2xl font-bold text-base shadow-lg shadow-primary/25" onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存变更</>}</Button>
+                </div>
+            </div>
           ) : canEditSubmission ? (
             <div className="flex items-center gap-3 w-full max-w-lg">
+                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={handleDelete} disabled={loading} title="删除任务">
+                    <Trash2 className="w-5 h-5" />
+                </Button>
                 <Button variant="outline" className="flex-1 h-12 rounded-2xl font-bold border-2 border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/10" onClick={handleSaveDraft} disabled={loading}>
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> 保存草稿</>}
                 </Button>
@@ -488,9 +507,14 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
             </div>
           ) : isCompleted ? (
             <div className="flex flex-col items-center gap-2">
-                <Button variant="outline" className="h-10 rounded-xl px-6 border-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 border-transparent transition-all" onClick={handleRollback} disabled={loading}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> 撤销完成状态 (继续补做)
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={handleDelete} disabled={loading} title="删除任务">
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" className="h-10 rounded-xl px-6 border-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 border-transparent transition-all" onClick={handleRollback} disabled={loading}>
+                        <RotateCcw className="w-4 h-4 mr-2" /> 撤销完成状态
+                    </Button>
+                </div>
                 <p className="text-[10px] text-muted-foreground italic font-medium">任务已于 {assignment.completed_at ? format(new Date(assignment.completed_at), 'yyyy-MM-dd HH:mm') : '未知时间'} 完成</p>
             </div>
           ) : (

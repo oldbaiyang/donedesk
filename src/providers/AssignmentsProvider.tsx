@@ -24,6 +24,7 @@ type AssignmentsContextType = {
   updateAssignmentStatus: (id: string, status: Assignment['status']) => Promise<void>;
   uploadAttachment: (assignmentId: string, file: File, purpose?: 'material' | 'submission') => Promise<boolean>;
   deleteAttachment: (attachmentId: string, fileUrl: string) => Promise<boolean>;
+  deleteAssignment: (id: string, attachments?: any[]) => Promise<boolean>;
   addStudent: (fullName: string) => Promise<Profile | null>;
   updateStudent: (id: string, updates: Partial<Profile>) => Promise<boolean>;
 };
@@ -250,6 +251,39 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     return false;
   };
 
+  const deleteAssignment = async (id: string, attachments: any[] = []): Promise<boolean> => {
+    // 1. 先从 Storage 删除所有附件物理文件
+    if (attachments && attachments.length > 0) {
+      const storagePaths = attachments
+        .map(att => {
+          const parts = att.file_url.split('/attachments/');
+          return parts.length >= 2 ? parts[1] : null;
+        })
+        .filter(Boolean) as string[];
+      
+      if (storagePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('attachments')
+          .remove(storagePaths);
+        if (storageError) console.error("Error deleting assignment attachments from storage:", storageError);
+      }
+    }
+
+    // 2. 删除任务本身（外键级联删除 attachments 表记录）
+    const { error } = await supabase
+      .from('assignments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error("Error deleting assignment:", error);
+      return false;
+    } else {
+      await fetchAssignments();
+      return true;
+    }
+  };
+
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
     // 过滤掉不属于数据库列的字段（如 subject, attachments）
     const { subject, attachments, ...dbUpdates } = updates as any;
@@ -353,6 +387,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       updateAssignmentStatus,
       uploadAttachment,
       deleteAttachment,
+      deleteAssignment,
       addStudent,
       updateStudent
     }}>
