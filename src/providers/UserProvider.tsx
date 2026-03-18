@@ -134,7 +134,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <UserContext.Provider value={{ user, profile, userId: user?.id, loading, refreshProfile }}>
+    <UserContext.Provider value={{ user, profile, userId: profile?.id, loading, refreshProfile }}>
       {children}
     </UserContext.Provider>
   )

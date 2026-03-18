@@ -26,7 +26,7 @@ export function useRewards() {
     const { data: assignments } = await supabase
       .from('assignments')
       .select('reward_pts')
-      .eq('user_id', userId)
+      .eq('student_id', userId)
       .eq('status', 'completed');
       
     // 获取心愿清单资源
