@@ -253,11 +253,25 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 truncate">关联学科</p>
                   {isEditing ? (
                     <Select value={editData.subject_id} onValueChange={(val) => setEditData({...editData, subject_id: val as string})}>
-                       <SelectTrigger className="w-full h-9 px-3 text-xs bg-background/50 border-primary/10 transition-all">
-                         <SelectValue placeholder="选择学科" />
+                       <SelectTrigger className="w-full h-9 px-3 text-xs bg-background/50 border-primary/10 transition-all font-bold">
+                         <SelectValue placeholder="选择学科">
+                            {editData.subject_id && subjects.find(s => s.id === editData.subject_id) ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ background: subjects.find(s => s.id === editData.subject_id)?.color_code }} />
+                                <span className="truncate">{subjects.find(s => s.id === editData.subject_id)?.name}</span>
+                              </div>
+                            ) : "请选择"}
+                         </SelectValue>
                        </SelectTrigger>
                        <SelectContent>
-                         {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                         {subjects.map(s => (
+                           <SelectItem key={s.id} value={s.id}>
+                             <div className="flex items-center gap-2">
+                               <div className="w-2 h-2 rounded-full" style={{ background: s.color_code }} />
+                               {s.name}
+                             </div>
+                           </SelectItem>
+                         ))}
                        </SelectContent>
                     </Select>
                   ) : (
