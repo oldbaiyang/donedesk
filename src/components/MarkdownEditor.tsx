@@ -96,9 +96,8 @@ export function MarkdownEditor({
           <span>**粗体**</span>
           <span>- 列表</span>
           <span>&gt; 引用</span>
-          <span>![] 图片</span>
         </div>
-        <div className="uppercase tracking-widest opacity-40">Live Preview Fusion</div>
+        <div className="uppercase tracking-widest opacity-40">Editor</div>
       </div>
     </div>
   )

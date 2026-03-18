@@ -20,7 +20,7 @@ const MarkdownEditor = dynamic(
   () => import("./MarkdownEditor").then((mod) => mod.MarkdownEditor),
   { 
     ssr: false,
-    loading: () => <div className="min-h-[250px] rounded-3xl bg-muted/20 border border-border/40 animate-pulse flex items-center justify-center text-muted-foreground/40 text-sm">加载融合编辑器...</div>
+    loading: () => <div className="min-h-[250px] rounded-3xl bg-muted/20 border border-border/40 animate-pulse flex items-center justify-center text-muted-foreground/40 text-sm">加载详情中...</div>
   }
 )
 
@@ -227,9 +227,9 @@ export function CreateAssignmentDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
 
-          {/* 作业详情 (融合编辑器模式) */}
+          {/* 作业详情 */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold text-foreground/70">作业详情 (Obsidian 融合预览模式)</Label>
+            <Label className="text-sm font-semibold text-foreground/70">作业详情</Label>
             <MarkdownEditor 
               value={desc} 
               onChange={setDesc} 

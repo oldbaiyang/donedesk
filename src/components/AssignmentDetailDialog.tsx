@@ -24,7 +24,7 @@ const MarkdownEditor = dynamic(
   () => import("./MarkdownEditor").then((mod) => mod.MarkdownEditor),
   { 
     ssr: false,
-    loading: () => <div className="min-h-[250px] rounded-3xl bg-muted/20 border border-border/40 animate-pulse flex items-center justify-center text-muted-foreground/40 text-sm">加载融合编辑器...</div>
+    loading: () => <div className="min-h-[250px] rounded-3xl bg-muted/20 border border-border/40 animate-pulse flex items-center justify-center text-muted-foreground/40 text-sm">加载中...</div>
   }
 )
 
