@@ -25,8 +25,8 @@ export function AssignmentCard({ assignment }: Props) {
       <Card 
         onClick={() => setIsDetailOpen(true)}
         className={cn(
-          "group relative p-5 transition-all duration-300 ease-out border overflow-hidden cursor-pointer selection:bg-none",
-          "hover:shadow-xl hover:-translate-y-1 hover:border-primary/40 bg-card/80 backdrop-blur-sm",
+          "group relative p-5 transition-all duration-300 ease-out border overflow-hidden cursor-pointer selection:bg-none h-full",
+          "hover:shadow-xl hover:-translate-y-1 hover:border-primary/40 bg-card/80 backdrop-blur-sm flex flex-col",
           isCompleted ? "opacity-60 bg-muted/50 grayscale-[0.2]" : "shadow-sm"
         )}
       >
@@ -38,7 +38,7 @@ export function AssignmentCard({ assignment }: Props) {
           />
         )}
         
-        <div className="flex gap-4 items-start relative z-10">
+        <div className="flex gap-4 items-start relative z-10 h-full flex-1">
         <div 
           className={cn("mt-1 shrink-0 transition-all duration-300", 
             isCompleted ? "text-emerald-500 drop-shadow-sm" : "text-muted-foreground drop-shadow-none"
@@ -47,7 +47,7 @@ export function AssignmentCard({ assignment }: Props) {
           {isCompleted ? <CheckCircle2 className="h-7 w-7" /> : <Circle className="h-7 w-7 stroke-[1.5]" />}
         </div>
 
-          <div className="flex-1 space-y-2 text-left">
+          <div className="flex-1 space-y-2 text-left flex flex-col h-full">
             <div className="flex justify-between items-start gap-2">
               <div>
                 <h3 className={cn("font-semibold leading-none", isCompleted && "line-through text-muted-foreground")}>
@@ -114,7 +114,7 @@ export function AssignmentCard({ assignment }: Props) {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs font-medium pt-2">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-medium pt-2 mt-auto">
               {dueDate && (
                 <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors", isOverdue ? "bg-destructive/10 text-destructive font-bold" : "bg-secondary/50 text-secondary-foreground object-contain")}>
                   <Calendar className="h-3.5 w-3.5" />
