@@ -5,14 +5,28 @@ import { useAssignments } from "@/hooks/useAssignments";
 import { AssignmentCard } from "@/components/AssignmentCard";
 
 export default function AssignmentsPage() {
-  const { assignments, fetchAssignments, fetchSubjects } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects, loading } = useAssignments();
 
   useEffect(() => {
     fetchSubjects();
     fetchAssignments();
   }, [fetchSubjects, fetchAssignments]);
 
-
+  if (loading && assignments.length === 0) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="space-y-3">
+          <div className="h-10 w-64 bg-muted rounded-xl" />
+          <div className="h-4 w-48 bg-muted rounded-lg" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-40 bg-muted/20 rounded-3xl border-2 border-muted/20" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -30,7 +44,7 @@ export default function AssignmentsPage() {
           <AssignmentCard key={item.id} assignment={item} />
         ))}
 
-        {assignments.length === 0 && (
+        {!loading && assignments.length === 0 && (
           <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-primary/20 rounded-3xl bg-primary/5">
             这里干干净净，暂无任何学业资料沉淀。
           </div>

@@ -8,17 +8,41 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function Dashboard() {
-  const { assignments, fetchAssignments, fetchSubjects } = useAssignments();
+  const { assignments, fetchAssignments, fetchSubjects, loading } = useAssignments();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   
   // 组件挂载时获取数据
   useEffect(() => {
-    fetchSubjects();
-    fetchAssignments();
+    const init = async () => {
+      await Promise.all([fetchSubjects(), fetchAssignments()]);
+      setIsFirstLoad(false);
+    };
+    init();
   }, [fetchSubjects, fetchAssignments]);
 
   const pendingAssignments = assignments.filter(a => a.status !== 'completed');
   const completedAssignments = assignments.filter(a => a.status === 'completed');
+
+  // 加载中且是第一次加载时显示骨架屏
+  if (loading && isFirstLoad) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="flex justify-between items-center">
+            <div className="space-y-3">
+                <div className="h-10 w-48 bg-muted rounded-xl" />
+                <div className="h-4 w-32 bg-muted rounded-lg" />
+            </div>
+            <div className="h-11 w-32 bg-muted rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-40 bg-muted/20 rounded-3xl border-2 border-muted/20" />
+            ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -68,7 +92,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {assignments.length === 0 && (
+      {!loading && assignments.length === 0 && (
         <div className="flex flex-col items-center justify-center p-16 text-center border-2 border-dashed border-primary/20 rounded-3xl bg-primary/5 hover:bg-primary/10 transition-colors duration-500 relative overflow-hidden group">
           <div className="absolute inset-0 bg-[url('https://api.typedream.com/v0/document/public/8c34614a-5c2f-4886-abe8-06ccfbf9a63c/r4m4p8H2XvL7C70Hpwl8Xg8W06H.svg')] opacity-[0.2] bg-[length:24px_24px] pointer-events-none" />
           <div className="w-20 h-20 bg-background shadow-xl rounded-2xl flex items-center justify-center mb-6 relative z-10 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-3">
