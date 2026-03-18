@@ -214,7 +214,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       .single();
 
     if (fetchError || !attachment) {
-      console.error("Error fetching attachment for deletion:", fetchError);
+      console.error("Error fetching attachment for deletion (Full):", JSON.stringify(fetchError, null, 2), "ID:", attachmentId);
       return false;
     }
 
