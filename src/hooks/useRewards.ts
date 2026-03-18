@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
+import { useAssignments } from './useAssignments';
 
 export type WishlistItem = {
   id: string;
@@ -12,28 +13,33 @@ export type WishlistItem = {
 };
 
 export function useRewards() {
-  const { userId } = useUser();
+  const { userId: loggedInUserId } = useUser();
+  const { activeStudentId } = useAssignments();
+  
+  // 核心逻辑：如果是家长代管模型，我们应该查看当前选中的学生的集成和心愿单
+  const targetId = activeStudentId || loggedInUserId;
+
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
   const [spentPoints, setSpentPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    if (!userId) return;
+    if (!targetId) return;
     setLoading(true);
     
     // 获取当所有已完成作业积攒的分数
     const { data: assignments } = await supabase
       .from('assignments')
       .select('reward_pts')
-      .eq('student_id', userId)
+      .eq('student_id', targetId)
       .eq('status', 'completed');
       
     // 获取心愿清单资源
     const { data: wishes } = await supabase
       .from('wishlist')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', targetId)
       .order('created_at', { ascending: false });
 
     // 计算分班
@@ -44,13 +50,13 @@ export function useRewards() {
     setSpentPoints(spent);
     setWishlist(wishes || []);
     setLoading(false);
-  }, [userId]);
+  }, [targetId]);
 
   const addWish = async (title: string, cost_pts: number): Promise<boolean> => {
-    if (!userId) return false;
+    if (!targetId) return false;
     const { data, error } = await supabase
       .from('wishlist')
-      .insert([{ user_id: userId, title, cost_pts }])
+      .insert([{ user_id: targetId, title, cost_pts }])
       .select()
       .single();
       
