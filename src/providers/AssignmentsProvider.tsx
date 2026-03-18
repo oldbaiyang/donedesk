@@ -65,7 +65,10 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
       }
     } else {
       setProfiles([profile]);
-      setActiveStudentId(profile.id);
+      if (activeStudentId !== profile.id) {
+        console.log("[AssignmentsProvider] Setting active student for student login:", profile.id);
+        setActiveStudentId(profile.id);
+      }
     }
   }, [profile, activeStudentId]);
 
@@ -90,9 +93,13 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
 
   const fetchAssignments = useCallback(async () => {
     const sId = activeStudentId;
-    if (!sId) return;
+    if (!sId) {
+      console.log("[AssignmentsProvider] No activeStudentId, skipping fetch.");
+      return;
+    }
 
     setLoading(true);
+    console.log("[AssignmentsProvider] Fetching assignments for student:", sId);
     const { data, error } = await supabase
       .from('assignments')
       .select(`
@@ -108,6 +115,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
         console.error("Error fetching assignments (Stringified):", JSON.stringify(error, null, 2));
       }
     } else {
+      console.log("[AssignmentsProvider] Fetched assignments:", data?.length || 0);
       setAssignments(data as any || []);
     }
     setLoading(false);
@@ -144,17 +152,24 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
   };
 
   const addAssignment = async (data: Partial<Assignment>): Promise<Assignment | null> => {
-    if (!activeStudentId) return null;
+    if (!activeStudentId) {
+      console.error("[AssignmentsProvider] Cannot add assignment: No activeStudentId");
+      return null;
+    }
+    console.log("[AssignmentsProvider] Adding assignment for student:", activeStudentId, data);
     const { data: record, error } = await supabase
       .from('assignments')
       .insert({ ...data, student_id: activeStudentId })
       .select()
       .single();
-    if (!error) {
-       await fetchAssignments();
-       return record as Assignment;
+    if (error) {
+      console.error("[AssignmentsProvider] Error adding assignment:", JSON.stringify(error, null, 2));
+      return null;
     }
-    return null;
+    
+    console.log("[AssignmentsProvider] Assignment added successfully:", record?.id);
+    await fetchAssignments();
+    return record as Assignment;
   };
 
   const uploadAttachment = async (assignmentId: string, file: File, purpose: 'material' | 'submission' = 'material'): Promise<boolean> => {
