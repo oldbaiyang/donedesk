@@ -96,7 +96,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
   }, [assignment]);
 
   const isImageFile = (fileName: string) => {
-    const images = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
+    const images = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'heic', 'heif'];
     const ext = fileName.split('.').pop()?.toLowerCase();
     return ext ? images.includes(ext) : false;
   };

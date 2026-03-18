@@ -186,16 +186,22 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
 
   const uploadAttachment = async (assignmentId: string, file: File, purpose: 'material' | 'submission' = 'material'): Promise<boolean> => {
     if (!userId) return false;
-    const fileExt = file.name.split('.').pop();
+    
+    // 检测HEIC格式
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+    
+    // 如果是HEIC，转换后使用.jpg扩展名
+    const fileExt = isHeic ? 'jpg' : file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
+    
+    // 存储到数据库的显示文件名（HEIC改为.jpg后缀）
+    const displayName = isHeic ? file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg') : file.name;
 
     let uploadData: File | Blob = file;
     
     // 如果是图片，先进行压缩处理
-    const isImage = file.type.startsWith('image/') || 
-                    file.name.toLowerCase().endsWith('.heic') || 
-                    file.name.toLowerCase().endsWith('.heif');
+    const isImage = file.type.startsWith('image/') || isHeic;
                     
     if (isImage) {
         try {
@@ -208,7 +214,7 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
     const { error: uploadError } = await supabase.storage
       .from('attachments')
       .upload(filePath, uploadData, {
-        contentType: uploadData.type,
+        contentType: isHeic ? 'image/jpeg' : (uploadData.type || file.type),
         upsert: true
       });
 
@@ -223,8 +229,8 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
 
     const { error: dbError } = await supabase.from('attachments').insert({
       assignment_id: assignmentId,
-      file_name: file.name,
-      file_type: uploadData.type || 'unknown',
+      file_name: displayName,
+      file_type: isHeic ? 'image/jpeg' : (uploadData.type || 'unknown'),
       file_url: publicUrl,
       purpose: purpose
     });
