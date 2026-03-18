@@ -365,7 +365,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                             ))}
                         </div>
                     )}
-                    <input ref={materialInputRef} type="file" multiple className="hidden" onChange={(e) => e.target.files && setPendingMaterialFiles([...pendingMaterialFiles, ...Array.from(e.target.files)])} />
+                    <input ref={materialInputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) { setPendingMaterialFiles([...pendingMaterialFiles, ...Array.from(e.target.files)]); } e.target.value = ''; }} />
                     <Button variant="outline" className="w-full border-dashed border-2 border-primary/20 hover:bg-primary/10 hover:border-primary/40 rounded-2xl h-14 font-bold text-primary" onClick={() => materialInputRef.current?.click()}>
                         <Upload className="w-5 h-5 mr-2" /> 上传任务补充资料 ({pendingMaterialFiles.length})
                     </Button>
@@ -476,7 +476,7 @@ export function AssignmentDetailDialog({ assignment, open, onOpenChange }: Props
                                     ))}
                                 </div>
                             )}
-                            <input ref={submissionInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => e.target.files && setSubmissionFiles([...submissionFiles, ...Array.from(e.target.files)])} />
+                            <input ref={submissionInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => { if (e.target.files) { setSubmissionFiles([...submissionFiles, ...Array.from(e.target.files)]); } e.target.value = ''; }} />
                             <Button variant="outline" className="w-full border-dashed border-2 border-indigo-500/20 hover:bg-indigo-500/10 hover:border-indigo-500/40 rounded-2xl h-14 font-bold text-indigo-500" onClick={() => submissionInputRef.current?.click()}>
                                 <Upload className="w-5 h-5 mr-2" /> 上传作业照片成果 ({submissionFiles.length})
                             </Button>
