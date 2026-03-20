@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { useAssignments } from './useAssignments';
+import { PointTransaction } from '@/types/point_transaction';
 
 export type WishlistItem = {
   id: string;
@@ -23,18 +24,30 @@ export function useRewards() {
   const [totalPoints, setTotalPoints] = useState(0);
   const [spentPoints, setSpentPoints] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<PointTransaction[]>([]);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!targetId) return;
+    const { data } = await supabase
+      .from('point_transactions')
+      .select('*')
+      .eq('user_id', targetId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    setTransactions(data || []);
+  }, [targetId]);
 
   const fetchData = useCallback(async () => {
     if (!targetId) return;
     setLoading(true);
-    
+
     // 获取当所有已完成作业积攒的分数
     const { data: assignments } = await supabase
       .from('assignments')
       .select('reward_pts')
       .eq('student_id', targetId)
       .eq('status', 'completed');
-      
+
     // 获取心愿清单资源
     const { data: wishes } = await supabase
       .from('wishlist')
@@ -49,8 +62,12 @@ export function useRewards() {
     setTotalPoints(total);
     setSpentPoints(spent);
     setWishlist(wishes || []);
+
+    // 获取积分明细
+    await fetchTransactions();
+
     setLoading(false);
-  }, [targetId]);
+  }, [targetId, fetchTransactions]);
 
   const addWish = async (title: string, cost_pts: number): Promise<boolean> => {
     if (!targetId) return false;
@@ -70,15 +87,41 @@ export function useRewards() {
   const redeemWish = async (id: string, cost: number): Promise<boolean> => {
     const available = totalPoints - spentPoints;
     if (available < cost) return false; // Not enough points
-    
+
+    // 获取最新余额
+    const { data: lastTx } = await supabase
+      .from('point_transactions')
+      .select('balance_after')
+      .eq('user_id', targetId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const prevBalance = lastTx?.balance_after ?? totalPoints;
+    const newBalance = prevBalance - cost;
+    const wishItem = wishlist.find(w => w.id === id);
+
+    await supabase.from('point_transactions').insert({
+      user_id: targetId,
+      type: 'spend',
+      amount: cost,
+      balance_after: newBalance,
+      reason: '兑换心愿消耗积分',
+      related_id: id,
+      related_type: 'wishlist',
+      description: wishItem?.title ?? null
+    });
+
     const { error } = await supabase
       .from('wishlist')
       .update({ is_redeemed: true })
       .eq('id', id);
-      
+
     if (!error) {
       setWishlist(prev => prev.map(w => w.id === id ? { ...w, is_redeemed: true } : w));
       setSpentPoints(prev => prev + cost);
+      // 刷新积分明细
+      await fetchTransactions();
       return true;
     }
     return false;
@@ -99,7 +142,9 @@ export function useRewards() {
     spentPoints,
     availablePoints: totalPoints - spentPoints,
     loading,
+    transactions,
     fetchData,
+    fetchTransactions,
     addWish,
     redeemWish,
     removeWish

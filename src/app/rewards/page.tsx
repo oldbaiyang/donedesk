@@ -6,15 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Gift, Trash2, CheckCircle2, Ticket, Plus, Loader2 } from "lucide-react";
+import { Gift, Trash2, Ticket, Plus, Loader2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { PointTransaction } from "@/types/point_transaction";
+
+type TabType = 'wishlist' | 'transactions';
 
 export default function RewardsPage() {
-  const { wishlist, availablePoints, totalPoints, spentPoints, loading, fetchData, addWish, redeemWish, removeWish } = useRewards();
+  const { wishlist, availablePoints, totalPoints, spentPoints, loading, transactions, fetchData, addWish, redeemWish, removeWish } = useRewards();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCost, setNewCost] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('wishlist');
 
   useEffect(() => {
     fetchData();
@@ -50,6 +55,27 @@ export default function RewardsPage() {
 
   const unredeemed = wishlist.filter(w => !w.is_redeemed);
   const redeemed = wishlist.filter(w => w.is_redeemed);
+
+  const TransactionItem = ({ tx }: { tx: PointTransaction }) => {
+    const isEarn = tx.type === 'earn';
+    return (
+      <div className="flex items-start gap-4 p-4 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+        <div className={cn(
+          "w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0",
+          isEarn ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+        )}>
+          {isEarn ? "+" : "-"}{tx.amount}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium">{tx.reason}</p>
+          {tx.description && <p className="text-sm text-muted-foreground truncate">{tx.description}</p>}
+          <p className="text-xs text-muted-foreground mt-1">
+            余额: {tx.balance_after} · {format(new Date(tx.created_at), 'yyyy-MM-dd HH:mm')}
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
@@ -87,67 +113,93 @@ export default function RewardsPage() {
         </div>
       </div>
 
-      <section className="space-y-4">
-        <h3 className="text-xl font-semibold flex items-center gap-2 mt-4">
-          我的愿望表 <span className="bg-amber-500/10 text-amber-500 text-xs px-2 py-0.5 rounded-full">{unredeemed.length}</span>
-        </h3>
-        {unredeemed.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground border border-dashed rounded-xl bg-muted/20">
-            暂无待兑换心愿项，点击右上方按钮添加一个吧！
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {unredeemed.map(item => (
-              <div key={item.id} className="group relative bg-card border rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:border-amber-500/50 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <h4 className="font-medium text-lg pr-6 break-words">{item.title}</h4>
-                  <button 
-                    onClick={() => removeWish(item.id)}
-                    className="absolute top-4 right-4 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="移除"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="mt-auto flex items-center justify-between pt-4 border-t border-dashed">
-                  <div className="flex items-center text-amber-500 font-bold bg-amber-500/10 px-3 py-1 rounded-full text-sm">
-                    <Ticket className="w-4 h-4 mr-1.5" /> {item.cost_pts} 分
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant={availablePoints >= item.cost_pts ? "default" : "secondary"}
-                    className={cn("transition-colors", availablePoints >= item.cost_pts ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-white" : "opacity-70 pointer-events-none")}
-                    onClick={() => handleRedeem(item.id, item.cost_pts)}
-                  >
-                    {availablePoints >= item.cost_pts ? "立即兑换" : "积分不足"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Tab 切换 */}
+      <div className="flex gap-1 p-1 bg-muted/50 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('wishlist')}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+            activeTab === 'wishlist'
+              ? "bg-white shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Ticket className="w-4 h-4" /> 我的愿望表
+          {unredeemed.length > 0 && (
+            <span className="bg-amber-500/10 text-amber-500 text-xs px-1.5 py-0.5 rounded-full">{unredeemed.length}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('transactions')}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+            activeTab === 'transactions'
+              ? "bg-white shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <History className="w-4 h-4" /> 积分明细
+          {transactions.length > 0 && (
+            <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">{transactions.length}</span>
+          )}
+        </button>
+      </div>
 
-      {redeemed.length > 0 && (
-        <section className="space-y-4 pt-8 mt-8 border-t">
-          <h3 className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-             <CheckCircle2 className="w-5 h-5" /> 历史兑换记录
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60 hover:opacity-100 transition-opacity duration-300">
-            {redeemed.map(item => (
-              <div key={item.id} className="bg-muted/50 border rounded-xl p-4 flex flex-col relative overflow-hidden group">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-medium text-foreground line-through break-words z-10 relative">{item.title}</h4>
+      {/* 愿望表内容 */}
+      {activeTab === 'wishlist' && (
+        <section className="space-y-4">
+          {unredeemed.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground border border-dashed rounded-xl bg-muted/20">
+              暂无待兑换心愿项，点击右上方按钮添加一个吧！
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {unredeemed.map(item => (
+                <div key={item.id} className="group relative bg-card border rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:border-amber-500/50 flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="font-medium text-lg pr-6 break-words">{item.title}</h4>
+                    <button
+                      onClick={() => removeWish(item.id)}
+                      className="absolute top-4 right-4 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="移除"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-dashed">
+                    <div className="flex items-center text-amber-500 font-bold bg-amber-500/10 px-3 py-1 rounded-full text-sm">
+                      <Ticket className="w-4 h-4 mr-1.5" /> {item.cost_pts} 分
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={availablePoints >= item.cost_pts ? "default" : "secondary"}
+                      className={cn("transition-colors", availablePoints >= item.cost_pts ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-white" : "opacity-70 pointer-events-none")}
+                      onClick={() => handleRedeem(item.id, item.cost_pts)}
+                    >
+                      {availablePoints >= item.cost_pts ? "立即兑换" : "积分不足"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="mt-auto flex items-center text-muted-foreground text-sm pt-2 z-10 relative">
-                   花费 {item.cost_pts} 积分
-                </div>
-                <div className="absolute right-[-10px] bottom-[-10px] text-emerald-500/10 group-hover:text-emerald-500/20 transition-colors z-0">
-                  <CheckCircle2 className="w-24 h-24" />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 积分明细内容 */}
+      {activeTab === 'transactions' && (
+        <section className="space-y-4">
+          {transactions.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground border border-dashed rounded-xl bg-muted/20">
+              暂无积分变动记录，完成作业或兑换心愿后将自动生成
+            </div>
+          ) : (
+            <div className="bg-card border rounded-xl overflow-hidden">
+              {transactions.map(tx => (
+                <TransactionItem key={tx.id} tx={tx} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 

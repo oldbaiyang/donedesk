@@ -129,9 +129,31 @@ BEGIN
 END $$;
 
 -- 6. 如果 attachments 表已存在但缺少 purpose，进行补齐
-DO $$ 
-BEGIN 
+DO $$
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='purpose') THEN
     ALTER TABLE public.attachments ADD COLUMN purpose TEXT DEFAULT 'material'; -- 'material' (资料) 或 'submission' (作业提交)
   END IF;
 END $$;
+
+-- 7. 积分变动明细表
+CREATE TABLE IF NOT EXISTS public.point_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('earn', 'spend')),
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  balance_after INTEGER NOT NULL DEFAULT 0,
+  reason TEXT NOT NULL,
+  related_id UUID,
+  related_type TEXT CHECK (related_type IN ('assignment', 'wishlist', 'manual')),
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.point_transactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public full access" ON public.point_transactions;
+CREATE POLICY "Public full access" ON public.point_transactions FOR ALL USING (true) WITH CHECK (true);
+
+CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id ON public.point_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_point_transactions_created_at ON public.point_transactions(created_at DESC);

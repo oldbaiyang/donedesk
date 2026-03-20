@@ -324,7 +324,31 @@ export function AssignmentsProvider({ children }: { children: React.ReactNode })
   const updateAssignmentStatus = async (id: string, status: Assignment['status']) => {
     const updatePayload: any = { status };
     if (status === 'completed') {
-       updatePayload.completed_at = new Date().toISOString();
+      updatePayload.completed_at = new Date().toISOString();
+
+      // 获取最新余额并插入积分获得记录
+      const { data: lastTx } = await supabase
+        .from('point_transactions')
+        .select('balance_after')
+        .eq('user_id', activeStudentId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const prevBalance = lastTx?.balance_after ?? 0;
+      const rewardPts = assignments.find(a => a.id === id)?.reward_pts ?? 10;
+      const newBalance = prevBalance + rewardPts;
+
+      await supabase.from('point_transactions').insert({
+        user_id: activeStudentId,
+        type: 'earn',
+        amount: rewardPts,
+        balance_after: newBalance,
+        reason: '完成作业获得积分',
+        related_id: id,
+        related_type: 'assignment',
+        description: assignments.find(a => a.id === id)?.title ?? null
+      });
     }
     await updateAssignment(id, updatePayload);
   };
